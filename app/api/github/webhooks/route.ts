@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json({ error: "Supabase is not configured." }, { status: 503 });
-  let repositoryQuery = supabase.from("pallos_github_repositories").select("*").eq("github_repository_id", repositoryId).eq("selected", true);
+  let repositoryQuery = supabase.from("pallos_github_repositories").select("*").eq("github_repository_id", repositoryId);
   if (installationId) repositoryQuery = repositoryQuery.eq("installation_id", installationId);
   const { data: repositories, error } = await repositoryQuery;
   if (error) return Response.json({ error: "Could not resolve the connected repository." }, { status: 500 });

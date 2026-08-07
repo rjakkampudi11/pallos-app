@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
           full_name: repo.full_name,
           default_branch: repo.default_branch,
           is_private: repo.private,
+          selected: true,
           updated_at: new Date().toISOString(),
         })), { onConflict: "user_id,github_repository_id" });
         if (repositoryError) throw repositoryError;
