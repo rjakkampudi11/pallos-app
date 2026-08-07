@@ -50,6 +50,11 @@ test("flags sensitive NEXT_PUBLIC variables but allows publishable browser keys"
   assert.deepEqual(findings.map((finding) => finding.rule_id), ["public-sensitive-environment-variable"]);
 });
 
+test("ignores sensitive environment-variable examples inside scanner tests", () => {
+  const findings = scanRepositoryFiles([{ path: "tests/scanner.test.ts", content: `process.env.NEXT_PUBLIC_ADMIN_TOKEN;` }]);
+  assert.equal(findings.length, 0);
+});
+
 test("flags a script-readable session cookie", () => {
   const findings = scanRepositoryFiles([{ path: "app/api/login/route.ts", content: `cookies().set("session", token, { httpOnly: false, secure: true });` }]);
   assert.equal(findings.some((finding) => finding.rule_id === "auth-cookie-not-http-only"), true);
