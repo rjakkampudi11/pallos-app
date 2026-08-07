@@ -40,6 +40,7 @@ import {
   XLogo,
 } from "@phosphor-icons/react";
 import { GitHubWorkspace } from "@/app/components/github-workspace";
+import { GitHubScanHistory } from "@/app/components/github-scan-history";
 
 type View = "overview" | "monitor" | "findings" | "projects" | "runs" | "connections" | "insights" | "activity" | "settings" | "contact";
 type SettingsTab = "general" | "appearance" | "account" | "connectors";
@@ -89,7 +90,6 @@ export default function Agent() {
   const [selectedProject, setSelectedProject] = useState(projects[0].name);
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState("Today, 11:42 AM");
-  const [runCount, setRunCount] = useState(4);
   const [query, setQuery] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
   const [connected, setConnected] = useState<Record<string, boolean>>({ GitHub: false, Supabase: true, Vercel: false, Stripe: false });
@@ -171,7 +171,6 @@ export default function Agent() {
     setToast("Pallos is reviewing the demo project…");
     setTimeout(() => {
       setRunning(false);
-      setRunCount((count) => count + 1);
       setLastRun("Just now");
       openView("findings");
       setToast("Demo scan complete: 5 findings are ready for review.");
@@ -208,17 +207,17 @@ export default function Agent() {
         </header>
 
         <div className="agent-content">
-          <div className="view-heading"><div><span>{meta.eyebrow}</span><h1>{meta.title}</h1><p>{meta.description}</p></div>{(["findings", "projects", "runs"] as View[]).includes(view) && <button className="secondary-action" onClick={runScan}><ArrowClockwise />Run demo scan</button>}</div>
-          <div className="demo-notice"><b>{view === "monitor" ? "LIVE MONITOR" : "DEMO DATA"}</b><span>{view === "monitor" ? "Checks make real server-side requests. Monitor history requires the connected Supabase database." : "This sandbox is interactive, but no live repository or service is being scanned."}</span></div>
+          <div className="view-heading"><div><span>{meta.eyebrow}</span><h1>{meta.title}</h1><p>{meta.description}</p></div>{(["findings", "projects"] as View[]).includes(view) && <button className="secondary-action" onClick={runScan}><ArrowClockwise />Run demo scan</button>}</div>
+          <div className="demo-notice"><b>{view === "monitor" ? "LIVE MONITOR" : view === "runs" || view === "activity" ? "LIVE HISTORY" : "DEMO DATA"}</b><span>{view === "monitor" ? "Checks make real server-side requests. Monitor history requires the connected Supabase database." : view === "runs" || view === "activity" ? "These records come from real manual and automatic GitHub scans saved in Supabase." : "This sandbox is interactive, but no live repository or service is being scanned."}</span></div>
 
           {view === "overview" && <Overview runScan={runScan} running={running} lastRun={lastRun} openView={openView} selectFinding={(index) => { setSelectedFinding(index); openView("findings"); }} />}
           {view === "monitor" && <MonitorView notify={setToast} />}
           {view === "findings" && <><GitHubWorkspace mode="findings" notify={setToast} /><div className="demo-divider"><span>DEMO FINDINGS</span></div><FindingsView items={filteredFindings} selected={currentFinding} select={(finding) => setSelectedFinding(findings.indexOf(finding))} query={query} setQuery={setQuery} preparePrompt={() => setPromptOpen(true)} queueVerification={runScan} /></>}
           {view === "projects" && <><GitHubWorkspace mode="projects" notify={setToast} /><div className="demo-divider"><span>DEMO PROJECTS</span></div><ProjectsView selected={selectedProject} setSelected={setSelectedProject} runScan={runScan} /></>}
-          {view === "runs" && <RunsView runCount={runCount} lastRun={lastRun} runScan={runScan} notify={setToast} />}
+          {view === "runs" && <GitHubScanHistory mode="runs" notify={setToast} openConnections={() => openView("connections")} />}
           {view === "connections" && <><GitHubWorkspace notify={setToast} /><div className="demo-divider"><span>OTHER CONNECTORS</span></div><ConnectionsView connected={connected} toggle={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} /></>}
           {view === "insights" && <InsightsView />}
-          {view === "activity" && <ActivityView lastRun={lastRun} notify={setToast} />}
+          {view === "activity" && <GitHubScanHistory mode="activity" notify={setToast} openConnections={() => openView("connections")} />}
           {view === "settings" && <SettingsView notify={setToast} tab={settingsTab} setTab={setSettingsTab} appearance={appearance} updateAppearance={updateAppearance} connected={connected} toggleConnector={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} account={account} setAccount={setAccount} logout={logout} />}
           {view === "contact" && <ContactView />}
         </div>
@@ -280,8 +279,6 @@ function FindingsView({ items, selected, select, query, setQuery, preparePrompt,
 function Detail({ title, body }: { title: string; body: string }) { return <div className="detail-section"><span>{title}</span><p>{body}</p></div>; }
 
 function ProjectsView({ selected, setSelected, runScan }: { selected: string; setSelected: (name: string) => void; runScan: () => void }) { return <div className="project-view"><div className="view-toolbar"><div><strong>3 demo projects</strong><span>One project is selected for the next agent run.</span></div><button className="run-button" onClick={runScan}><Play weight="fill" />Scan selected</button></div><div className="project-grid">{projects.map((project) => <button key={project.name} className={`project-card ${selected === project.name ? "selected" : ""}`} onClick={() => setSelected(project.name)}><div className="project-card-top"><span><BracketsCurly /></span><em>{project.status}</em></div><h2>{project.name}</h2><p>{project.stack}</p><div className="project-data"><div><small>Score</small><strong>{project.score ?? "—"}</strong></div><div><small>Findings</small><strong>{project.findings}</strong></div><div><small>Last scan</small><strong>{project.last}</strong></div></div>{selected === project.name && <span className="selected-label"><Check weight="bold" />Selected</span>}</button>)}</div></div>; }
-
-function RunsView({ runCount, lastRun, runScan, notify }: { runCount: number; lastRun: string; runScan: () => void; notify: (value: string) => void }) { const rows = [[`Run 00${runCount}`,lastRun,"Completed","5 findings","42s"],[`Run 00${runCount-1}`,"Yesterday, 4:16 PM","Completed","4 findings","38s"],[`Run 00${runCount-2}`,"Jul 29, 10:03 AM","Completed","6 findings","51s"],[`Run 00${runCount-3}`,"Jul 27, 2:22 PM","Stopped","—","12s"]]; return <div className="workspace-card runs-card"><div className="card-head"><div><span>SCAN HISTORY</span><h2>Recent agent runs</h2></div><button className="run-button" onClick={runScan}><Play weight="fill" />New run</button></div><div className="runs-table"><div className="table-head"><span>Run</span><span>Started</span><span>Status</span><span>Result</span><span>Duration</span><span /></div>{rows.map((row) => <button className="table-row" key={row[0]} onClick={() => notify(`${row[0]}: ${row[2]}, ${row[3]}, completed in ${row[4]}.`)}>{row.map((cell,index) => index === 2 ? <span key={cell}><i className={cell === "Completed" ? "status-light" : "status-light stopped"} />{cell}</span> : <span key={`${cell}-${index}`}>{cell}</span>)}<ArrowRight /></button>)}</div></div>; }
 
 type SavedChange = { kind: string; path: string; expected: string | null; actual: string | null; serious: boolean };
 type SavedCheck = { id: string; requested_url: string; status_code: number | null; response_ms: number; outcome: "baseline" | "healthy" | "changed" | "error"; serious: boolean; changes: SavedChange[]; error_message: string | null; checked_at: string };
@@ -520,8 +517,6 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
 function ConnectionsView({ connected, toggle }: { connected: Record<string, boolean>; toggle: (name: string) => void }) { const services = [{name:"Supabase",icon:Database,body:"Database policies, public configuration, and schema context."},{name:"Vercel",icon:Code,body:"Deployment environment names and launch configuration checks."},{name:"Stripe",icon:LinkSimple,body:"Integration presence and exposed-key patterns. No payment data."}]; return <div className="connection-grid">{services.map(({name,icon:Icon,body}) => <article className="workspace-card connection-card" key={name}><div className="connection-icon"><Icon /></div><div><h2>{name}</h2><p>{body}</p></div><div className="connection-foot"><span><i className={`status-light ${connected[name] ? "" : "off"}`} />{connected[name] ? "Demo connected" : "Not connected"}</span><button onClick={() => toggle(name)}>{connected[name] ? "Disconnect" : "Connect demo"}</button></div></article>)}</div>; }
 
 function InsightsView() { return <div className="insights-layout"><div className="metric-grid insights-metrics"><Metric icon={ChartLineUp} label="Score change" value="+11" note="Across the last four demo runs" tone="green"/><Metric icon={WarningCircle} label="Repeat category" value="Access" note="2 findings reopened this month" tone="gold"/><Metric icon={Check} label="Fix rate" value="62%" note="Findings cleared after a rescan" tone="blue"/></div><div className="workspace-card insight-chart"><div className="card-head"><div><span>LAUNCH READINESS</span><h2>Score over recent runs</h2></div><em>Demo trend</em></div><div className="bar-chart">{[["Run 001",61],["Run 002",66],["Run 003",68],["Run 004",72]].map(([label,value]) => <div key={label}><span style={{height:`${value}%`}}><b>{value}</b></span><small>{label}</small></div>)}</div></div><div className="workspace-card insight-list"><div className="card-head"><div><span>REPEATED PATTERNS</span><h2>Where the app needs attention</h2></div></div>{[["Access boundaries","2 open","Admin and database scope"],["Secret handling","1 critical","Browser-exposed credential"],["Usage guardrails","1 review","AI route needs a cap"]].map(row => <div className="insight-row" key={row[0]}><strong>{row[0]}</strong><span>{row[2]}</span><em>{row[1]}</em></div>)}</div></div>; }
-
-function ActivityView({ lastRun, notify }: { lastRun: string; notify: (value: string) => void }) { const events = [["Agent run completed",`Run 004 finished with five demo findings · ${lastRun}`,Pulse],["Finding opened","Service key exposed to the browser · Just now",WarningCircle],["Project selected","Unsafe Store Demo is active · Today, 11:37 AM",Folder],["Connection enabled","Supabase demo context became available · Yesterday",Database],["Finding verified","Public key moved out of server config · Jul 29",Check]]; function exportActivity(){ const csv=["Event,Details",...events.map(([title,note])=>`"${title}","${note}"`)].join("\n"); const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); const link=document.createElement("a"); link.href=url; link.download="pallos-demo-activity.csv"; link.click(); URL.revokeObjectURL(url); notify("Demo activity exported as CSV."); } return <div className="workspace-card activity-card"><div className="card-head"><div><span>WORKSPACE HISTORY</span><h2>Recent activity</h2></div><button onClick={exportActivity}>Export CSV</button></div><div className="activity-list">{events.map(([title,note,Icon],index) => { const EventIcon = Icon as typeof House; return <div key={title as string}><span><EventIcon /></span><div><strong>{title as string}</strong><p>{note as string}</p></div><em>{index === 0 ? "New" : ""}</em></div>})}</div></div>; }
 
 function ContactView() {
   const accounts = [
