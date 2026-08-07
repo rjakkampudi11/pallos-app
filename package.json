@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:monitor": "node --experimental-strip-types --test tests/monitoring.test.mts",
-    "test:scanner": "node --experimental-strip-types --test tests/code-scanner.test.mts"
+    "test:scanner": "node --experimental-strip-types --test tests/code-scanner.test.mts",
+    "test:webhook": "node --experimental-strip-types --test tests/github-webhook.test.mts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
