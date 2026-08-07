@@ -92,7 +92,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
     }
 
     const publicSensitiveEnv = firstMatch(file.content, /NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|PRIVATE|SERVICE_ROLE|PASSWORD|TOKEN)[A-Z0-9_]*/g);
-    if (publicSensitiveEnv) {
+    if (publicSensitiveEnv && !isTestFile(file.path) && !isDetectionRuleFile(file)) {
       const line = lineFor(file.content, publicSensitiveEnv.index);
       addFinding(findings, {
         rule_id: "public-sensitive-environment-variable",
