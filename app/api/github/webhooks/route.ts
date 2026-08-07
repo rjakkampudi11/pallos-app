@@ -36,12 +36,14 @@ export async function POST(request: Request) {
   const installationId = payload.installation?.id;
   const repositoryId = payload.repository?.id;
   const commitSha = payload.after;
-  if (!installationId || !repositoryId || !commitSha || !payload.ref) return Response.json({ error: "Incomplete push payload." }, { status: 400 });
+  if (!repositoryId || !commitSha || !payload.ref) return Response.json({ error: "Incomplete push payload." }, { status: 400 });
   if (payload.deleted || deletedCommit.test(commitSha)) return Response.json({ accepted: true, ignored: "deleted_ref" }, { status: 202 });
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json({ error: "Supabase is not configured." }, { status: 503 });
-  const { data: repositories, error } = await supabase.from("pallos_github_repositories").select("*").eq("installation_id", installationId).eq("github_repository_id", repositoryId).eq("selected", true);
+  let repositoryQuery = supabase.from("pallos_github_repositories").select("*").eq("github_repository_id", repositoryId).eq("selected", true);
+  if (installationId) repositoryQuery = repositoryQuery.eq("installation_id", installationId);
+  const { data: repositories, error } = await repositoryQuery;
   if (error) return Response.json({ error: "Could not resolve the connected repository." }, { status: 500 });
 
   const matching = (repositories || []).filter((repository) => payload.ref === `refs/heads/${repository.default_branch}`) as GitHubRepositoryRecord[];
