@@ -89,3 +89,34 @@ export async function installationToken(installationId: number) {
 export async function installationRequest<T>(installationId: number, path: string) {
   return githubFetch<T>(path, await installationToken(installationId));
 }
+
+type RepositoryWebhook = {
+  id: number;
+  active: boolean;
+  events: string[];
+  config: { url?: string };
+};
+
+export async function ensureRepositoryPushWebhook(installationId: number, fullName: string) {
+  const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
+  if (!secret) throw new Error("GITHUB_WEBHOOK_SECRET is not configured.");
+
+  const token = await installationToken(installationId);
+  const repositoryPath = `/repos/${fullName.split("/").map(encodeURIComponent).join("/")}/hooks`;
+  const webhookUrl = "https://pallosagent.com/api/github/webhooks";
+  const hooks = await githubFetch<RepositoryWebhook[]>(`${repositoryPath}?per_page=100`, token);
+  const existing = hooks.find((hook) => hook.config.url === webhookUrl);
+  const body = JSON.stringify({
+    active: true,
+    events: ["push"],
+    config: { url: webhookUrl, content_type: "json", secret, insecure_ssl: "0" },
+  });
+
+  if (existing) {
+    await githubFetch(`${repositoryPath}/${existing.id}`, token, { method: "PATCH", headers: { "Content-Type": "application/json" }, body });
+    return { id: existing.id, created: false };
+  }
+
+  const created = await githubFetch<RepositoryWebhook>(repositoryPath, token, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  return { id: created.id, created: true };
+}

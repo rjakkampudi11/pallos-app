@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestAuth, withRefreshedSession } from "@/lib/auth";
-import { exchangeOAuthCode, githubAppSlug, listUserInstallationRepositories, listUserInstallations } from "@/lib/github-app";
+import { ensureRepositoryPushWebhook, exchangeOAuthCode, githubAppSlug, listUserInstallationRepositories, listUserInstallations } from "@/lib/github-app";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 function finish(request: NextRequest, auth: NonNullable<Awaited<ReturnType<typeof getRequestAuth>>>, result: string) {
@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       return finish(request, auth, slug ? "install-required" : "setup-required");
     }
 
+    let webhookWarning = false;
     for (const installation of installations) {
       const repositories = await listUserInstallationRepositories(userToken, installation.id);
       const { error: installationError } = await supabase.from("pallos_github_installations").upsert({
@@ -53,9 +54,17 @@ export async function GET(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })), { onConflict: "user_id,github_repository_id" });
         if (repositoryError) throw repositoryError;
+
+        const webhookResults = await Promise.allSettled(repositories.map((repo) => ensureRepositoryPushWebhook(installation.id, repo.full_name)));
+        if (webhookResults.some((result) => result.status === "rejected")) {
+          webhookWarning = true;
+          for (const result of webhookResults) {
+            if (result.status === "rejected") console.error("GitHub repository webhook setup failed", result.reason instanceof Error ? result.reason.message : result.reason);
+          }
+        }
       }
     }
-    return finish(request, auth, "connected");
+    return finish(request, auth, webhookWarning ? "connected-webhook-warning" : "connected");
   } catch (error) {
     console.error("GitHub callback failed", error instanceof Error ? error.message : error);
     return finish(request, auth, "failed");
