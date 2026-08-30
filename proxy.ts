@@ -16,6 +16,11 @@ export function proxy(request: NextRequest) {
       url.hostname = "pallosagent.info";
       return NextResponse.redirect(url, 308);
     }
+    if (host === "pallosagent.com" && path === "/" && !hasSession) {
+      const url = request.nextUrl.clone();
+      url.hostname = "pallosagent.info";
+      return NextResponse.redirect(url, 308);
+    }
     if (path === "/" || path === "/app" || path === "/agent") {
       const url = request.nextUrl.clone();
       url.pathname = hasSession ? "/home" : "/login";

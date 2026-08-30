@@ -19,12 +19,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "That submission could not be read." }, { status: 400 });
   }
 
-  if (clean(input.website)) {
+  if (clean(input.companyWebsite)) {
     return Response.json({ ok: true });
   }
 
   const selectedTool = clean(input.tool, 80);
   const otherTool = clean(input.otherTool, 120);
+  const projectUrl = clean(input.projectUrl, 500);
+  const building = clean(input.building, 1200);
   const payload = {
     secret: webhookSecret,
     firstName: clean(input.firstName, 80),
@@ -33,12 +35,12 @@ export async function POST(request: Request) {
     tool: selectedTool === "Other" && otherTool ? `Other: ${otherTool}` : selectedTool,
     concern: clean(input.concern, 120),
     stage: clean(input.stage, 80),
-    building: clean(input.building, 1200),
+    building: projectUrl ? `${building}\nProject URL: ${projectUrl}` : building,
     consent: clean(input.consent, 10),
     source: "pallosagent.info",
   };
 
-  if (!payload.firstName || !emailPattern.test(payload.email) || !payload.role || !payload.tool || (selectedTool === "Other" && !otherTool) || !payload.concern || !payload.stage || payload.consent !== "yes") {
+  if (!emailPattern.test(payload.email) || !payload.tool || (selectedTool === "Other" && !otherTool) || !building || payload.consent !== "yes") {
     return Response.json({ error: "Please complete the required fields with a valid email address." }, { status: 400 });
   }
 

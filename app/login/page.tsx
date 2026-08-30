@@ -55,15 +55,15 @@ function LoginContent() {
   return <main className="login-page">
     <section className="login-story">
       <Link className="agent-brand" href="https://pallosagent.info"><span className="agent-brand-dot" />Pallos Agent</Link>
-      <div><span className="eyebrow">SECURE WORKSPACE</span><h1>A second set of eyes for everything your AI just built.</h1><p>Your monitors, response history, and incidents are separated from every other Pallos account.</p></div>
-      <div className="login-steps"><div><span>01</span><strong>Connect</strong><p>Add a public or authenticated JSON endpoint.</p></div><div><span>02</span><strong>Compare</strong><p>Save a baseline and detect contract changes.</p></div><div><span>03</span><strong>Resolve</strong><p>Keep serious changes visible until reviewed.</p></div></div>
+      <div><span className="eyebrow">SECURE WORKSPACE</span><h1>A second set of eyes for everything your AI just built.</h1><p>Your repositories, scans, monitors, findings, and incidents stay tied to your Pallos account.</p></div>
+      <div className="login-steps"><div><span>01</span><strong>Connect</strong><p>Choose a GitHub repository with read-only access or add a JSON endpoint.</p></div><div><span>02</span><strong>Scan</strong><p>Review focused findings with redacted evidence and plain-English context.</p></div><div><span>03</span><strong>Verify</strong><p>Fix the issue, scan again, and confirm what changed.</p></div></div>
     </section>
     <section className="login-panel">
       <div className="login-card">
         {verificationEmail ? <div className="verification-state"><EnvelopeSimple /><span>VERIFY YOUR EMAIL</span><h2>Open the link we sent you.</h2><p>{verificationMessage}</p><strong>{verificationEmail}</strong><button className="run-button" type="button" onClick={resendVerification}>Send another email</button><button className="text-link" type="button" onClick={() => { setVerificationEmail(""); setMode("login"); }}>Back to login</button></div> : <>
         <span>{mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}</span>
         <h2>{mode === "login" ? "Enter your workspace." : "Start your workspace."}</h2>
-        <p>{mode === "login" ? "Use your Pallos account to access your private monitors." : "Create an account with an email and a password of at least eight characters."}</p>
+        <p>{mode === "login" ? "Use your Pallos account to access your private scans and monitors." : "Create an account to try the read-only GitHub scanner and API monitor."}</p>
         <div className="auth-mode-switch"><button className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setError(""); }}>Log in</button><button className={mode === "signup" ? "active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Create account</button></div>
         <form onSubmit={submit}>
           {mode === "signup" && <label>Display name<input name="displayName" autoComplete="name" placeholder="Your name" required /></label>}
