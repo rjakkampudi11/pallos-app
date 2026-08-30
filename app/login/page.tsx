@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-import { ArrowRight, Check, SignIn, UserPlus } from "@phosphor-icons/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { ArrowRight, Check, EnvelopeSimple, SignIn, UserPlus } from "@phosphor-icons/react";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"login" | "signup">(() => searchParams.get("mode") === "signup" ? "signup" : "login");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,10 +27,16 @@ export default function LoginPage() {
           email: form.get("email"),
           password: form.get("password"),
           displayName: form.get("displayName"),
+          next: new URLSearchParams(window.location.search).get("next"),
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not continue.");
+      if (data.verificationRequired) {
+        setVerificationEmail(String(form.get("email") || ""));
+        setVerificationMessage(data.message || "Check your inbox to verify your email.");
+        return;
+      }
       const requested = new URLSearchParams(window.location.search).get("next");
       const destination = requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/home";
       router.replace(destination);
@@ -35,6 +44,12 @@ export default function LoginPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not continue.");
     } finally { setSubmitting(false); }
+  }
+
+  async function resendVerification() {
+    const response = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: verificationEmail }) });
+    const data = await response.json();
+    setVerificationMessage(data.message || data.error || "Could not resend the email.");
   }
 
   return <main className="login-page">
@@ -45,6 +60,7 @@ export default function LoginPage() {
     </section>
     <section className="login-panel">
       <div className="login-card">
+        {verificationEmail ? <div className="verification-state"><EnvelopeSimple /><span>VERIFY YOUR EMAIL</span><h2>Open the link we sent you.</h2><p>{verificationMessage}</p><strong>{verificationEmail}</strong><button className="run-button" type="button" onClick={resendVerification}>Send another email</button><button className="text-link" type="button" onClick={() => { setVerificationEmail(""); setMode("login"); }}>Back to login</button></div> : <>
         <span>{mode === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}</span>
         <h2>{mode === "login" ? "Enter your workspace." : "Start your workspace."}</h2>
         <p>{mode === "login" ? "Use your Pallos account to access your private monitors." : "Create an account with an email and a password of at least eight characters."}</p>
@@ -56,8 +72,13 @@ export default function LoginPage() {
           {error && <p className="auth-error" role="alert">{error}</p>}
           <button className="run-button" disabled={submitting}>{submitting ? "Please wait…" : mode === "login" ? <><SignIn />Log in <ArrowRight /></> : <><UserPlus />Create account <ArrowRight /></>}</button>
         </form>
-        <div className="login-help"><span><Check /> Server-validated session</span><Link href="https://pallosagent.info">About Pallos</Link></div>
+        <div className="login-help"><span><Check /> Verified email · server session</span><div><Link href="https://pallosagent.info/security">Security</Link><Link href="https://pallosagent.info">About Pallos</Link></div></div>
+        </>}
       </div>
     </section>
   </main>;
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={<main className="login-page"><section className="login-panel"><div className="login-card">Loading secure access…</div></section></main>}><LoginContent /></Suspense>;
 }

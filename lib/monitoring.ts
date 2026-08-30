@@ -2,6 +2,7 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
+export type SchemaDescription = Record<string, string>;
 
 export type EndpointSnapshot = {
   ok: boolean;
@@ -9,6 +10,11 @@ export type EndpointSnapshot = {
   body: JsonValue | null;
   durationMs: number;
   errorMessage: string | null;
+  security?: {
+    https: boolean;
+    headers: Record<string, string>;
+    cookies: Array<{ secure: boolean; httpOnly: boolean; sameSite: boolean }>;
+  };
 };
 
 export type MonitorChange = {
@@ -38,7 +44,7 @@ export function describeSchema(value: JsonValue, path = "$", result: Record<stri
   return result;
 }
 
-export function compareResponse(baseline: JsonValue, snapshot: EndpointSnapshot): MonitorChange[] {
+export function compareResponse(expected: SchemaDescription, snapshot: EndpointSnapshot): MonitorChange[] {
   if (!snapshot.ok) {
     if (snapshot.statusCode !== null && snapshot.statusCode >= 200 && snapshot.statusCode < 300 && snapshot.body === null) {
       return [{ kind: "invalid_json", path: "$", expected: "JSON", actual: snapshot.errorMessage || "Invalid JSON", serious: true }];
@@ -53,7 +59,6 @@ export function compareResponse(baseline: JsonValue, snapshot: EndpointSnapshot)
   }
   if (snapshot.body === null) return [{ kind: "invalid_json", path: "$", expected: "JSON", actual: "Empty or invalid JSON", serious: true }];
 
-  const expected = describeSchema(baseline);
   const actual = describeSchema(snapshot.body);
   const changes: MonitorChange[] = [];
 
@@ -97,6 +102,18 @@ export async function fetchEndpoint(input: string, privateHeaders: Record<string
       headers: { ...privateHeaders, Accept: "application/json", "User-Agent": "Pallos-Monitor/1.0" },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    const observedHeaderNames = ["strict-transport-security", "x-content-type-options", "access-control-allow-origin", "access-control-allow-credentials", "x-powered-by"];
+    const observedHeaders = Object.fromEntries(observedHeaderNames.flatMap((name) => {
+      const value = response.headers.get(name);
+      return value === null ? [] : [[name, value]];
+    }));
+    const getSetCookie = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
+    const setCookies = getSetCookie ? getSetCookie.call(response.headers) : response.headers.get("set-cookie") ? [response.headers.get("set-cookie") as string] : [];
+    const cookieObservations = setCookies.map((value) => ({
+      secure: /(?:^|;)\s*secure(?:;|$)/i.test(value),
+      httpOnly: /(?:^|;)\s*httponly(?:;|$)/i.test(value),
+      sameSite: /(?:^|;)\s*samesite=(?:strict|lax|none)(?:;|$)/i.test(value),
+    }));
     const text = await response.text();
     if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) throw new Error("The API response is larger than the 1 MB monitor limit.");
     let body: JsonValue | null = null;
@@ -108,8 +125,9 @@ export async function fetchEndpoint(input: string, privateHeaders: Record<string
       body,
       durationMs: Date.now() - started,
       errorMessage: response.ok && !jsonValid ? "The endpoint did not return valid JSON." : response.ok ? null : `HTTP ${response.status}`,
+      security: { https: url.protocol === "https:", headers: observedHeaders, cookies: cookieObservations },
     };
   } catch (error) {
-    return { ok: false, statusCode: null, body: null, durationMs: Date.now() - started, errorMessage: error instanceof Error ? error.message : "The endpoint request failed." };
+    return { ok: false, statusCode: null, body: null, durationMs: Date.now() - started, errorMessage: error instanceof Error ? error.message : "The endpoint request failed.", security: { https: input.trim().startsWith("https://"), headers: {}, cookies: [] } };
   }
 }

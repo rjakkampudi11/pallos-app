@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getRequestAuth, unauthorized, withRefreshedSession } from "@/lib/auth";
 import { describeSchema, fetchEndpoint } from "@/lib/monitoring";
-import { encryptHeaders, parsePrivateHeader } from "@/lib/monitor-secrets";
+import { enforceRateLimit, recordAuditEvent } from "@/lib/security-controls";
 import { getSupabaseAdmin, SUPABASE_SETUP_MESSAGE } from "@/lib/supabase-admin";
+import { assessEndpoint } from "@/lib/security-assessment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,14 +12,13 @@ function setupRequired() {
   return NextResponse.json({ error: SUPABASE_SETUP_MESSAGE, setupRequired: true }, { status: 503 });
 }
 
-const publicMonitorFields = "id,name,url,baseline_status,last_status_code,last_result,last_checked_at,created_at,updated_at,has_auth_headers,schedule_frequency,next_check_at,email_alerts";
+const publicMonitorFields = "id,name,url,baseline_status,last_status_code,last_result,last_checked_at,created_at,updated_at,schedule_frequency,next_check_at,email_alerts,is_demo";
 
 export async function GET() {
   const auth = await getRequestAuth();
   if (!auth) return unauthorized();
   const supabase = getSupabaseAdmin();
   if (!supabase) return setupRequired();
-
   const [monitorsResult, checksResult, incidentsResult] = await Promise.all([
     supabase.from("pallos_monitors").select(publicMonitorFields).eq("user_id", auth.user.id).order("created_at", { ascending: false }),
     supabase.from("pallos_checks").select("*").eq("user_id", auth.user.id).order("checked_at", { ascending: false }).limit(100),
@@ -40,34 +40,31 @@ export async function POST(request: Request) {
   if (!auth) return unauthorized();
   const supabase = getSupabaseAdmin();
   if (!supabase) return setupRequired();
+  const limited = await enforceRateLimit(request, { scope: "monitor-create", identifier: auth.user.id, limit: 10, windowSeconds: 3600 });
+  if (limited) return limited;
 
-  let input: { name?: string; url?: string; headerName?: string; headerValue?: string };
+  const { count } = await supabase.from("pallos_monitors").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("is_demo", false);
+  if ((count || 0) >= 3) return NextResponse.json({ error: "The tester plan supports up to 3 live monitors." }, { status: 409 });
+
+  let input: { name?: string; url?: string };
   try { input = await request.json(); } catch { return NextResponse.json({ error: "Send a valid JSON request." }, { status: 400 }); }
   const url = input.url?.trim();
   if (!url) return NextResponse.json({ error: "Website API link is required." }, { status: 400 });
-  let privateHeaders: Record<string, string> | null;
-  try { privateHeaders = parsePrivateHeader(input.headerName, input.headerValue); }
-  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid private header." }, { status: 400 }); }
-
-  const snapshot = await fetchEndpoint(url, privateHeaders || {});
+  const snapshot = await fetchEndpoint(url);
   if (!snapshot.ok || snapshot.body === null || snapshot.statusCode === null) {
     return NextResponse.json({ error: snapshot.errorMessage || "The endpoint must return a successful JSON response before it can become a baseline." }, { status: 400 });
   }
   const defaultName = (() => { try { return new URL(url).hostname; } catch { return "Website API"; } })();
   const name = input.name?.trim() || defaultName;
   if (name.length > 100) return NextResponse.json({ error: "Monitor name must be 100 characters or fewer." }, { status: 400 });
-  let headersEncrypted: string | null = null;
-  try { headersEncrypted = privateHeaders ? encryptHeaders(privateHeaders) : null; }
-  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Could not secure the private header." }, { status: 503 }); }
-
   const { data: monitor, error: monitorError } = await supabase.from("pallos_monitors").insert({
     user_id: auth.user.id,
     name,
     url,
-    headers_encrypted: headersEncrypted,
-    has_auth_headers: Boolean(privateHeaders),
+    headers_encrypted: null,
+    has_auth_headers: false,
     baseline_status: snapshot.statusCode,
-    baseline_body: snapshot.body,
+    baseline_body: null,
     baseline_schema: describeSchema(snapshot.body),
     last_status_code: snapshot.statusCode,
     last_result: "baseline",
@@ -80,15 +77,17 @@ export async function POST(request: Request) {
     monitor_id: monitor.id,
     requested_url: url,
     status_code: snapshot.statusCode,
-    response_body: snapshot.body,
+    response_schema: describeSchema(snapshot.body),
     response_ms: snapshot.durationMs,
     outcome: "baseline",
     serious: false,
     changes: [],
+    assessment: assessEndpoint(snapshot, []),
   });
   if (checkError) {
     await supabase.from("pallos_monitors").delete().eq("id", monitor.id).eq("user_id", auth.user.id);
     return NextResponse.json({ error: checkError.message }, { status: 500 });
   }
+  await recordAuditEvent({ userId: auth.user.id, action: "monitor.created", resourceType: "monitor", resourceId: monitor.id, metadata: { hostname: new URL(url).hostname }, request });
   return withRefreshedSession(NextResponse.json({ monitor }, { status: 201 }), auth);
 }

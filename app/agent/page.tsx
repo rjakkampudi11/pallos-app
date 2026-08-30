@@ -41,9 +41,12 @@ import {
 } from "@phosphor-icons/react";
 import { GitHubWorkspace } from "@/app/components/github-workspace";
 import { GitHubScanHistory } from "@/app/components/github-scan-history";
+import { SecuritySettings } from "@/app/components/security-settings";
+import { SecurityAssessmentPanel } from "@/app/components/security-assessment-panel";
+import type { SecurityAssessment } from "@/lib/security-assessment";
 
 type View = "overview" | "monitor" | "findings" | "projects" | "runs" | "connections" | "insights" | "activity" | "settings" | "contact";
-type SettingsTab = "general" | "appearance" | "account" | "connectors";
+type SettingsTab = "general" | "appearance" | "account" | "connectors" | "security";
 type Appearance = { theme: "light" | "dim"; accent: "indigo" | "cyan" | "emerald"; density: "comfortable" | "compact"; reducedMotion: boolean };
 type Account = { id: string; email: string; displayName: string };
 
@@ -219,7 +222,7 @@ export default function Agent() {
           {view === "insights" && <InsightsView />}
           {view === "activity" && <GitHubScanHistory mode="activity" notify={setToast} openConnections={() => openView("connections")} />}
           {view === "settings" && <SettingsView notify={setToast} tab={settingsTab} setTab={setSettingsTab} appearance={appearance} updateAppearance={updateAppearance} connected={connected} toggleConnector={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} account={account} setAccount={setAccount} logout={logout} />}
-          {view === "contact" && <ContactView />}
+          {view === "contact" && <><TesterFeedback notify={setToast} /><ContactView /></>}
         </div>
         <div className="agent-toast" role="status"><span className="status-light" />{toast}</div>
       </section>
@@ -281,9 +284,9 @@ function Detail({ title, body }: { title: string; body: string }) { return <div 
 function ProjectsView({ selected, setSelected, runScan }: { selected: string; setSelected: (name: string) => void; runScan: () => void }) { return <div className="project-view"><div className="view-toolbar"><div><strong>3 demo projects</strong><span>One project is selected for the next agent run.</span></div><button className="run-button" onClick={runScan}><Play weight="fill" />Scan selected</button></div><div className="project-grid">{projects.map((project) => <button key={project.name} className={`project-card ${selected === project.name ? "selected" : ""}`} onClick={() => setSelected(project.name)}><div className="project-card-top"><span><BracketsCurly /></span><em>{project.status}</em></div><h2>{project.name}</h2><p>{project.stack}</p><div className="project-data"><div><small>Score</small><strong>{project.score ?? "—"}</strong></div><div><small>Findings</small><strong>{project.findings}</strong></div><div><small>Last scan</small><strong>{project.last}</strong></div></div>{selected === project.name && <span className="selected-label"><Check weight="bold" />Selected</span>}</button>)}</div></div>; }
 
 type SavedChange = { kind: string; path: string; expected: string | null; actual: string | null; serious: boolean };
-type SavedCheck = { id: string; requested_url: string; status_code: number | null; response_ms: number; outcome: "baseline" | "healthy" | "changed" | "error"; serious: boolean; changes: SavedChange[]; error_message: string | null; checked_at: string };
+type SavedCheck = { id: string; requested_url: string; status_code: number | null; response_ms: number; outcome: "baseline" | "healthy" | "changed" | "error"; serious: boolean; changes: SavedChange[]; assessment: SecurityAssessment | null; error_message: string | null; checked_at: string };
 type SavedIncident = { id: string; title: string; severity: "high" | "critical"; status: "open" | "resolved"; summary: string; created_at: string; resolved_at: string | null };
-type SavedMonitor = { id: string; name: string; url: string; baseline_status: number; last_status_code: number | null; last_result: string; last_checked_at: string | null; created_at: string; has_auth_headers: boolean; schedule_frequency: "manual" | "hourly" | "six_hours" | "daily"; next_check_at: string | null; email_alerts: boolean; checks: SavedCheck[]; incidents: SavedIncident[] };
+type SavedMonitor = { id: string; name: string; url: string; baseline_status: number; last_status_code: number | null; last_result: string; last_checked_at: string | null; created_at: string; is_demo: boolean; has_auth_headers?: boolean; schedule_frequency: "manual" | "hourly" | "six_hours" | "daily"; next_check_at: string | null; email_alerts: boolean; checks: SavedCheck[]; incidents: SavedIncident[] };
 
 function MonitorView({ notify }: { notify: (value: string) => void }) {
   const router = useRouter();
@@ -300,6 +303,19 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
   const [resultNotice, setResultNotice] = useState("");
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [setupRequired, setSetupRequired] = useState(false);
+  const [demoRunning, setDemoRunning] = useState(false);
+
+  async function runGuidedDemo() {
+    setDemoRunning(true); setError(""); setResultNotice("");
+    try {
+      const response = await fetch("/api/tester/demo", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The guided demo could not run.");
+      setResultNotice(`Guided test complete: Pallos caught ${data.changes.length} contract changes and opened an incident.`);
+      await loadMonitors(); setSelectedId(data.monitorId);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "The guided demo could not run."); }
+    finally { setDemoRunning(false); }
+  }
 
   async function loadMonitors(showLoading = false) {
     if (showLoading) setLoading(true);
@@ -348,14 +364,12 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
     setError("");
     const form = new FormData(formElement);
     try {
-      const response = await fetch("/api/monitors", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), url: form.get("url"), headerName: form.get("headerName"), headerValue: form.get("headerValue") }) });
+      const response = await fetch("/api/monitors", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), url: form.get("url") }) });
       const data = await response.json();
       if (!response.ok) throw Object.assign(new Error(data.error || "Could not create monitor."), { setupRequired: data.setupRequired });
       notify("Baseline captured and monitor created.");
       await loadMonitors();
       setSelectedId(data.monitor.id);
-      const secretInput = formElement.elements.namedItem("headerValue") as HTMLInputElement | null;
-      if (secretInput) secretInput.value = "";
     } catch (caught) {
       const failure = caught as Error & { setupRequired?: boolean };
       setError(failure.message);
@@ -408,27 +422,9 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
     finally { setManagingId(null); }
   }
 
-  async function updateMonitorAuth(monitor: SavedMonitor) {
-    let payload: Record<string, unknown>;
-    if (monitor.has_auth_headers) {
-      if (!window.confirm("Remove the saved private API header from this monitor?")) return;
-      payload = { clearHeaders: true };
-    } else {
-      const headerName = window.prompt("Private header name", "Authorization");
-      if (!headerName) return;
-      const headerValue = window.prompt("Private header value (for Bearer tokens, include 'Bearer ' first)");
-      if (!headerValue) return;
-      payload = { headerName, headerValue };
-    }
-    setManagingId(monitor.id);
-    try {
-      const response = await fetch(`/api/monitors/${monitor.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not update authentication.");
-      notify(monitor.has_auth_headers ? "Private API header removed." : "Private API header encrypted and saved.");
-      await loadMonitors();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not update authentication."); }
-    finally { setManagingId(null); }
+  function updateMonitorAuth(_monitor?: SavedMonitor) {
+    void _monitor;
+    notify("Private API authentication is disabled during the tester beta. Use a public or staging JSON endpoint.");
   }
 
   async function deleteMonitor(monitor: SavedMonitor) {
@@ -476,17 +472,18 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
 
   return <div className="monitor-layout">
     <section className="monitor-summary">
-      <article><span>ENDPOINTS</span><strong>{monitors.length}</strong><small>Saved monitors</small></article>
+      <article><span>ENDPOINTS</span><strong>{monitors.filter((monitor) => !monitor.is_demo).length}/3</strong><small>Tester-plan monitors</small></article>
       <article><span>CHECKS</span><strong>{totalChecks}</strong><small>Stored results</small></article>
       <article className={openIncidents ? "attention" : ""}><span>OPEN INCIDENTS</span><strong>{openIncidents}</strong><small>Serious changes</small></article>
     </section>
 
+    <section className="workspace-card tester-onboarding"><div><span>GUIDED TEST</span><h2>See Pallos catch a breaking API change.</h2><p>No API needed. Pallos saves a healthy response shape, runs a broken version, and explains every detected change. Response values are never stored.</p></div><ol><li><b>1</b>Save healthy shape</li><li><b>2</b>Run broken response</li><li><b>3</b>Open an incident</li></ol><button className="run-button" onClick={runGuidedDemo} disabled={demoRunning}>{demoRunning ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{demoRunning ? "Running guided test…" : "Run guided test"}</button></section>
+
     <form className="workspace-card monitor-create" onSubmit={createMonitor}>
-      <div><span>NEW MONITOR</span><h2>Add a website API link</h2><p>Pallos requests the endpoint now and securely saves its successful JSON response as the baseline.</p></div>
+      <div><span>YOUR API</span><h2>Add a public or staging JSON endpoint</h2><p>Pallos stores field names and data types—not response values. Private authentication is disabled during the beta.</p></div>
       <label>Monitor name<input name="name" defaultValue="Training profile API" required /></label>
       <label className="monitor-url-field">Website API link<input name="url" type="url" defaultValue={healthyUrl} required /></label>
       <button className="run-button" type="submit" disabled={creating}>{creating ? <ArrowClockwise className="spin" /> : <BracketsCurly />}{creating ? "Capturing…" : "Capture baseline"}</button>
-      <details className="monitor-auth-fields"><summary>Private API authentication (optional)</summary><div><label>Header name<input name="headerName" placeholder="Authorization or X-API-Key" /></label><label>Secret header value<input name="headerValue" type="password" autoComplete="off" placeholder="Bearer token or API key" /></label><p>The value is encrypted before storage and is never returned to the browser.</p></div></details>
     </form>
 
     {setupRequired && <section className="workspace-card monitor-setup"><Database /><div><span>SUPABASE CONNECTION REQUIRED</span><h2>The monitor is built and waiting for its database.</h2><p>Add the two server-only environment variables, then run the included migration. No key is ever sent to the browser.</p><code>SUPABASE_URL</code><code>SUPABASE_SECRET_KEY</code></div></section>}
@@ -507,7 +504,8 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
         </article>
         <article className="workspace-card monitor-run-card"><div className="card-head"><div><span>MANUAL CHECK</span><h2>{selected.name}</h2></div><div className="monitor-manage-actions"><em>{selected.has_auth_headers ? "Private header secured" : `Baseline HTTP ${selected.baseline_status}`}</em><button onClick={() => editMonitor(selected)} disabled={managingId === selected.id}>Edit</button><button onClick={() => updateMonitorAuth(selected)} disabled={managingId === selected.id}>{selected.has_auth_headers ? "Remove auth" : "Add auth"}</button><button className="danger-link" onClick={() => deleteMonitor(selected)} disabled={managingId === selected.id}>Delete</button></div></div><div className="baseline-meta"><div><span>BASELINE SOURCE</span><strong>{selected.url}</strong></div><div><span>LAST CHECK</span><strong>{formatTime(selected.last_checked_at)}</strong></div><div><span>LAST STATUS</span><strong>{selected.last_status_code ? `HTTP ${selected.last_status_code}` : "Request failed"}</strong></div></div><label>Request URL for this check<input value={checkUrls[selected.id] || selected.url} onChange={(event) => setCheckUrls((current) => ({ ...current, [selected.id]: event.target.value }))} /></label><div className="monitor-test-tools"><button type="button" onClick={() => setCheckUrls((current) => ({ ...current, [selected.id]: selected.url }))}>Use monitored URL</button><button type="button" className="broken-test-button" onClick={() => runCheck(selected, brokenUrl)} disabled={checkingId === selected.id}>{checkingId === selected.id ? "Running broken test…" : "Run broken test"}</button><button className="run-button" type="button" onClick={() => runCheck(selected)} disabled={checkingId === selected.id}>{checkingId === selected.id ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{checkingId === selected.id ? "Checking…" : "Run Check"}</button></div></article>
 
-        <div className="monitor-results-grid"><article className="workspace-card check-history"><div className="card-head"><div><span>CHECK HISTORY</span><h2>Every saved result</h2></div></div>{selected.checks.length === 0 ? <p>No checks yet.</p> : selected.checks.map((check) => <div key={check.id} className="check-row"><span className={`check-outcome ${check.outcome}`}>{check.outcome}</span><div><strong>{check.status_code ? `HTTP ${check.status_code}` : check.error_message || "Request failed"}</strong><small>{formatTime(check.checked_at)} · {check.response_ms} ms</small>{check.changes.length > 0 && <div className="change-list">{check.changes.map((change, index) => <span key={`${change.path}-${index}`} className={change.serious ? "serious" : ""}><b>{changeLabel(change.kind)}</b><code>{change.path}</code>{change.expected && change.actual && <em>{change.expected} → {change.actual}</em>}</span>)}</div>}</div></div>)}</article>
+        {selected.checks[0] ? <article className="workspace-card latest-assessment"><div className="card-head"><div><span>LATEST ASSESSMENT</span><h2>Security posture at a glance</h2></div><em>{formatTime(selected.checks[0].checked_at)}</em></div><SecurityAssessmentPanel assessment={selected.checks[0].assessment} /></article> : null}
+        <div className="monitor-results-grid"><article className="workspace-card check-history"><div className="card-head"><div><span>CHECK HISTORY</span><h2>Every saved result</h2></div></div>{selected.checks.length === 0 ? <p>No checks yet.</p> : selected.checks.map((check) => <div key={check.id} className="check-row"><span className={`check-outcome ${check.outcome}`}>{check.outcome}</span><div><strong>{check.status_code ? `HTTP ${check.status_code}` : check.error_message || "Request failed"}</strong><small>{formatTime(check.checked_at)} · {check.response_ms} ms · {check.assessment ? `${check.assessment.score}/100 ${check.assessment.grade}` : "assessment unavailable"}</small>{check.changes.length > 0 && <div className="change-list">{check.changes.map((change, index) => <span key={`${change.path}-${index}`} className={change.serious ? "serious" : ""}><b>{changeLabel(change.kind)}</b><code>{change.path}</code>{change.expected && change.actual && <em>{change.expected} → {change.actual}</em>}</span>)}</div>}</div></div>)}</article>
         <article className="workspace-card incident-list"><div className="card-head"><div><span>INCIDENTS</span><h2>Serious changes</h2></div><em>{selected.incidents.filter((incident) => incident.status === "open").length} open</em></div>{selected.incidents.length === 0 ? <div className="incident-empty"><CheckCircle weight="fill" /><strong>No incidents.</strong><p>HTTP failures, missing fields, and type changes will appear here.</p></div> : selected.incidents.map((incident) => <div className={`incident-row ${incident.status}`} key={incident.id}><span className={incident.severity}>{incident.severity}</span><div><strong>{incident.title}</strong><p>{incident.summary}</p><small>{formatTime(incident.created_at)} · {incident.status}</small><button onClick={() => setIncidentStatus(incident)}>{incident.status === "open" ? "Mark resolved" : "Reopen incident"}</button></div></div>)}</article></div>
       </section>
     </div>}
@@ -517,6 +515,22 @@ function MonitorView({ notify }: { notify: (value: string) => void }) {
 function ConnectionsView({ connected, toggle }: { connected: Record<string, boolean>; toggle: (name: string) => void }) { const services = [{name:"Supabase",icon:Database,body:"Database policies, public configuration, and schema context."},{name:"Vercel",icon:Code,body:"Deployment environment names and launch configuration checks."},{name:"Stripe",icon:LinkSimple,body:"Integration presence and exposed-key patterns. No payment data."}]; return <div className="connection-grid">{services.map(({name,icon:Icon,body}) => <article className="workspace-card connection-card" key={name}><div className="connection-icon"><Icon /></div><div><h2>{name}</h2><p>{body}</p></div><div className="connection-foot"><span><i className={`status-light ${connected[name] ? "" : "off"}`} />{connected[name] ? "Demo connected" : "Not connected"}</span><button onClick={() => toggle(name)}>{connected[name] ? "Disconnect" : "Connect demo"}</button></div></article>)}</div>; }
 
 function InsightsView() { return <div className="insights-layout"><div className="metric-grid insights-metrics"><Metric icon={ChartLineUp} label="Score change" value="+11" note="Across the last four demo runs" tone="green"/><Metric icon={WarningCircle} label="Repeat category" value="Access" note="2 findings reopened this month" tone="gold"/><Metric icon={Check} label="Fix rate" value="62%" note="Findings cleared after a rescan" tone="blue"/></div><div className="workspace-card insight-chart"><div className="card-head"><div><span>LAUNCH READINESS</span><h2>Score over recent runs</h2></div><em>Demo trend</em></div><div className="bar-chart">{[["Run 001",61],["Run 002",66],["Run 003",68],["Run 004",72]].map(([label,value]) => <div key={label}><span style={{height:`${value}%`}}><b>{value}</b></span><small>{label}</small></div>)}</div></div><div className="workspace-card insight-list"><div className="card-head"><div><span>REPEATED PATTERNS</span><h2>Where the app needs attention</h2></div></div>{[["Access boundaries","2 open","Admin and database scope"],["Secret handling","1 critical","Browser-exposed credential"],["Usage guardrails","1 review","AI route needs a cap"]].map(row => <div className="insight-row" key={row[0]}><strong>{row[0]}</strong><span>{row[2]}</span><em>{row[1]}</em></div>)}</div></div>; }
+
+function TesterFeedback({ notify }: { notify: (value: string) => void }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSending(true);
+    const form = new FormData(event.currentTarget);
+    const payload = Object.fromEntries(form.entries());
+    const response = await fetch("/api/tester/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, usefulness: Number(payload.usefulness), contactPermission: payload.contactPermission === "on" }) });
+    const data = await response.json(); setSending(false);
+    if (!response.ok) { notify(data.error || "Could not send feedback."); return; }
+    setSent(true); notify("Feedback saved and delivered to Pallos. Thank you.");
+  }
+  if (sent) return <section className="workspace-card feedback-success"><CheckCircle weight="fill" /><div><span>FEEDBACK SENT</span><h2>Thank you for testing Pallos.</h2><p>Your answers are saved and will directly shape the next build.</p></div></section>;
+  return <form className="workspace-card tester-feedback" onSubmit={submit}><div className="feedback-intro"><span>TESTER FEEDBACK</span><h2>Tell us what worked—and what did not.</h2><p>This takes about two minutes. Your answers are saved in Pallos and emailed to our team.</p></div><label>How useful was Pallos?<select name="usefulness" required defaultValue=""><option value="" disabled>Choose 1–10</option>{Array.from({ length: 10 }, (_, index) => <option key={index + 1}>{index + 1}</option>)}</select></label><label>Was setup clear?<select name="setupClarity" required defaultValue=""><option value="" disabled>Choose one</option><option>Very clear</option><option>Mostly clear</option><option>Confusing</option></select></label><label>Were the detected changes clear?<select name="detectionClarity" required defaultValue=""><option value="" disabled>Choose one</option><option>Very clear</option><option>Mostly clear</option><option>Confusing</option></select></label><label>What confused you?<textarea name="confusingText" rows={3} /></label><label>What feature was missing?<textarea name="missingFeature" rows={3} /></label><label>Would you use Pallos again?<select name="reuseIntent" required defaultValue=""><option value="" disabled>Choose one</option><option>Yes</option><option>Maybe</option><option>No</option></select></label><label>Would you pay for automatic monitoring?<select name="willingnessToPay" required defaultValue=""><option value="" disabled>Choose one</option><option>Yes, now</option><option>Maybe after more features</option><option>No</option></select></label><label className="feedback-consent"><input name="contactPermission" type="checkbox" />Pallos may email me one follow-up question.</label><button className="run-button" disabled={sending}>{sending ? "Sending…" : "Send tester feedback"}</button></form>;
+}
 
 function ContactView() {
   const accounts = [
@@ -575,6 +589,7 @@ function SettingsView({ notify, tab, setTab, appearance, updateAppearance, conne
     { id: "appearance", label: "Appearance", note: "Theme and density" },
     { id: "account", label: "Account", note: "Login details" },
     { id: "connectors", label: "Connectors", note: "Service access" },
+    { id: "security", label: "Security", note: "History and deletion" },
   ];
   const services = [
     ["Supabase", "Policies, schema, and public configuration", Database],
@@ -601,5 +616,6 @@ function SettingsView({ notify, tab, setTab, appearance, updateAppearance, conne
     </div>}
 
     {tab === "connectors" && <div className="workspace-card connector-settings"><div className="card-head"><div><span>CONNECTED SERVICES</span><h2>Connector access</h2></div><em>{Object.values(connected).filter(Boolean).length} of {services.length} active</em></div><p className="connector-intro">Choose which demo services can provide context to Pallos. Live connections will use provider authorization and can be revoked at any time.</p><div className="connector-settings-list">{services.map(([name, body, Icon]) => <div key={name}><span className="connection-icon"><Icon /></span><div><strong>{name}</strong><small>{body}</small></div><em><i className={`status-light ${connected[name] ? "" : "off"}`} />{connected[name] ? "Demo connected" : "Not connected"}</em><button onClick={() => toggleConnector(name)}>{connected[name] ? "Disconnect" : "Connect demo"}</button></div>)}</div></div>}
+    {tab === "security" && <SecuritySettings notify={notify} />}
   </div>;
 }

@@ -120,3 +120,13 @@ export async function ensureRepositoryPushWebhook(installationId: number, fullNa
   const created = await githubFetch<RepositoryWebhook>(repositoryPath, token, { method: "POST", headers: { "Content-Type": "application/json" }, body });
   return { id: created.id, created: true };
 }
+
+export async function removeRepositoryPushWebhook(installationId: number, fullName: string) {
+  const token = await installationToken(installationId);
+  const repositoryPath = `/repos/${fullName.split("/").map(encodeURIComponent).join("/")}/hooks`;
+  const hooks = await githubFetch<RepositoryWebhook[]>(`${repositoryPath}?per_page=100`, token);
+  const webhookUrl = "https://pallosagent.com/api/github/webhooks";
+  const matching = hooks.filter((hook) => hook.config.url === webhookUrl);
+  await Promise.all(matching.map((hook) => githubFetch(`${repositoryPath}/${hook.id}`, token, { method: "DELETE" })));
+  return matching.length;
+}

@@ -2,16 +2,17 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendIncidentEmail } from "@/lib/incident-email";
-import { compareResponse, fetchEndpoint, type JsonValue } from "@/lib/monitoring";
+import { compareResponse, describeSchema, fetchEndpoint, type SchemaDescription } from "@/lib/monitoring";
 import { decryptHeaders } from "@/lib/monitor-secrets";
 import { nextScheduledAt, type ScheduleFrequency } from "@/lib/scheduling";
+import { assessEndpoint } from "@/lib/security-assessment";
 
 export type MonitorRecord = {
   id: string;
   user_id: string;
   name: string;
   url: string;
-  baseline_body: JsonValue;
+  baseline_schema: SchemaDescription;
   headers_encrypted: string | null;
   has_auth_headers: boolean;
   schedule_frequency: ScheduleFrequency;
@@ -23,7 +24,8 @@ export async function runMonitorCheck(supabase: SupabaseClient, monitor: Monitor
   const requestedUrl = options.requestedUrl?.trim() || monitor.url;
   const privateHeaders = decryptHeaders(monitor.headers_encrypted);
   const snapshot = await fetchEndpoint(requestedUrl, privateHeaders);
-  const changes = compareResponse(monitor.baseline_body, snapshot);
+  const changes = compareResponse(monitor.baseline_schema, snapshot);
+  const assessment = assessEndpoint(snapshot, changes);
   const serious = changes.some((change) => change.serious);
   const outcome = !snapshot.ok ? "error" : changes.length ? "changed" : "healthy";
 
@@ -32,12 +34,13 @@ export async function runMonitorCheck(supabase: SupabaseClient, monitor: Monitor
     monitor_id: monitor.id,
     requested_url: requestedUrl,
     status_code: snapshot.statusCode,
-    response_body: snapshot.body,
+    response_schema: snapshot.body === null ? null : describeSchema(snapshot.body),
     response_ms: snapshot.durationMs,
     outcome,
     serious,
     changes,
     error_message: snapshot.errorMessage,
+    assessment,
   }).select().single();
   if (checkError || !check) throw new Error(checkError?.message || "Could not save the check.");
 
@@ -76,6 +79,5 @@ export async function runMonitorCheck(supabase: SupabaseClient, monitor: Monitor
     alert = await sendIncidentEmail(supabase, monitor, incident);
   }
 
-  return { check, incident, incidentCreated, alert, outcome, changes, snapshot };
+  return { check, incident, incidentCreated, alert, outcome, changes, snapshot, assessment };
 }
-

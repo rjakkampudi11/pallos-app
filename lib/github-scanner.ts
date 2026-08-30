@@ -3,6 +3,7 @@ import "server-only";
 import { scanRepositoryFiles, type ScanFile } from "@/lib/code-scanner";
 import { githubFetch, installationToken } from "@/lib/github-app";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { assessCodeScan } from "@/lib/security-assessment";
 
 type TreeEntry = { path: string; type: "blob" | "tree"; sha: string; size?: number };
 type TreeResponse = { sha: string; tree: TreeEntry[]; truncated: boolean };
@@ -85,6 +86,7 @@ export async function runGitHubRepositoryScan({ repository, triggerType = "manua
     const tree = await githubFetch<TreeResponse>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/git/trees/${encodeURIComponent(commit.commit.tree.sha)}?recursive=1`, token);
     const files = await loadFiles(token, owner, name, tree.tree.filter(eligible).slice(0, 300));
     const findings = scanRepositoryFiles(files);
+    const assessment = assessCodeScan(files, findings, tree.truncated);
 
     const { error: resolutionError } = await supabase.from("pallos_code_findings").update({ status: "resolved" }).eq("repository_id", repository.id).eq("user_id", repository.user_id).eq("status", "open");
     if (resolutionError) throw resolutionError;
@@ -94,9 +96,9 @@ export async function runGitHubRepositoryScan({ repository, triggerType = "manua
     }
 
     const finishedAt = new Date().toISOString();
-    const completed = { ...scan, status: "completed", commit_sha: commit.sha, files_scanned: files.length, findings_count: findings.length, finished_at: finishedAt };
+    const completed = { ...scan, status: "completed", commit_sha: commit.sha, files_scanned: files.length, findings_count: findings.length, assessment, finished_at: finishedAt };
     const [{ error: completionError }, { error: repositoryError }] = await Promise.all([
-      supabase.from("pallos_code_scans").update({ status: "completed", commit_sha: commit.sha, files_scanned: files.length, findings_count: findings.length, finished_at: finishedAt }).eq("id", scan.id).eq("user_id", repository.user_id),
+      supabase.from("pallos_code_scans").update({ status: "completed", commit_sha: commit.sha, files_scanned: files.length, findings_count: findings.length, assessment, finished_at: finishedAt }).eq("id", scan.id).eq("user_id", repository.user_id),
       supabase.from("pallos_github_repositories").update({ last_scanned_at: finishedAt, updated_at: finishedAt }).eq("id", repository.id).eq("user_id", repository.user_id),
     ]);
     if (completionError || repositoryError) throw completionError || repositoryError;

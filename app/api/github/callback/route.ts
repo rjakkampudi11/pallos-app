@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestAuth, withRefreshedSession } from "@/lib/auth";
 import { ensureRepositoryPushWebhook, exchangeOAuthCode, githubAppSlug, listUserInstallationRepositories, listUserInstallations } from "@/lib/github-app";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { recordAuditEvent } from "@/lib/security-controls";
 
 function finish(request: NextRequest, auth: NonNullable<Awaited<ReturnType<typeof getRequestAuth>>>, result: string) {
   const response = NextResponse.redirect(new URL(`/connections?github=${encodeURIComponent(result)}`, request.url));
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+    await recordAuditEvent({ userId: auth.user.id, action: "github.connected", resourceType: "connector", metadata: { installations: installations.length, webhookWarning }, request });
     return finish(request, auth, webhookWarning ? "connected-webhook-warning" : "connected");
   } catch (error) {
     console.error("GitHub callback failed", error instanceof Error ? error.message : error);

@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test:monitor": "node --experimental-strip-types --test tests/monitoring.test.mts",
     "test:scanner": "node --experimental-strip-types --test tests/code-scanner.test.mts",
-    "test:webhook": "node --experimental-strip-types --test tests/github-webhook.test.mts"
+    "test:webhook": "node --experimental-strip-types --test tests/github-webhook.test.mts",
+    "test:free-scan": "node --experimental-strip-types --test tests/free-scan.test.mts",
+    "test:assessment": "node --experimental-strip-types --test tests/security-assessment.test.mts",
+    "test": "npm run test:monitor && npm run test:free-scan && npm run test:scanner && npm run test:assessment && npm run test:webhook"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
