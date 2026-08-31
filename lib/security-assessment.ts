@@ -15,9 +15,9 @@ export type AssessmentCheck = {
 };
 
 export type SecurityAssessment = {
-  version: 1;
+  version: 1 | 2;
   score: number;
-  grade: "Strong" | "Moderate Risk" | "High Risk" | "Critical Risk";
+  grade: "Strong" | "Limited Assurance" | "Low Risk" | "Moderate Risk" | "High Risk" | "Critical Risk";
   summary: string;
   coverage: number;
   checks: AssessmentCheck[];
@@ -25,26 +25,41 @@ export type SecurityAssessment = {
 
 const severityWeight: Record<AssessmentSeverity, number> = { low: 4, medium: 10, high: 22, critical: 40 };
 
-function finalize(checks: AssessmentCheck[]): SecurityAssessment {
+export function finalizeSecurityAssessment(checks: AssessmentCheck[]): SecurityAssessment {
   const tested = checks.filter((check) => check.status !== "not_tested");
   const failed = checks.filter((check) => check.status === "failed");
   const totalWeight = checks.reduce((sum, check) => sum + severityWeight[check.severity || "low"], 0) || 1;
-  const testedWeight = tested.reduce((sum, check) => sum + severityWeight[check.severity || "low"], 0);
+  const testedWeight = tested.reduce((sum, check) => sum + severityWeight[check.severity || "low"], 0) || 1;
   const failedWeight = failed.reduce((sum, check) => sum + severityWeight[check.severity || "low"], 0);
   const coverage = Math.round((testedWeight / totalWeight) * 100);
-  let score = Math.round(100 - (failedWeight / totalWeight) * 100);
-  if (checks.some((check) => check.status === "not_tested")) score = Math.min(score, 95);
-  if (coverage < 50) score = Math.min(score, 84);
-  score = Math.max(0, score);
+  let score = Math.max(0, Math.round(100 - (failedWeight / testedWeight) * 100));
   const hasCritical = failed.some((check) => check.severity === "critical");
   const hasHigh = failed.some((check) => check.severity === "high");
-  const grade = hasCritical || score < 40 ? "Critical Risk" : hasHigh || score < 70 ? "High Risk" : score < 85 ? "Moderate Risk" : "Strong";
-  const summary = hasCritical
-    ? "Critical risk signals need attention before launch."
-    : failed.length === 0
-      ? "No verified vulnerabilities were found in the checks Pallos could complete. Untested areas remain clearly identified."
-      : `No critical vulnerabilities were verified. Pallos found ${failed.length} lower-severity ${failed.length === 1 ? "risk signal" : "risk signals"} to review.`;
-  return { version: 1, score, grade, summary, coverage, checks };
+  const hasMedium = failed.some((check) => check.severity === "medium");
+  const hasLow = failed.some((check) => check.severity === "low");
+
+  // Untested checks do not count as passes, and serious findings cap the score
+  // so the number cannot contradict the displayed risk grade.
+  if (hasCritical) score = Math.min(score, 39);
+  else if (hasHigh) score = Math.min(score, 69);
+  else if (hasMedium) score = Math.min(score, 84);
+  else if (hasLow) score = Math.min(score, 94);
+  else if (coverage < 50) score = Math.min(score, 79);
+  else if (coverage < 80) score = Math.min(score, 95);
+
+  const grade = hasCritical ? "Critical Risk"
+    : hasHigh ? "High Risk"
+      : hasMedium ? "Moderate Risk"
+        : hasLow ? "Low Risk"
+          : coverage < 50 ? "Limited Assurance"
+            : "Strong";
+  const highestSeverity = hasCritical ? "critical" : hasHigh ? "high" : hasMedium ? "medium" : hasLow ? "low" : null;
+  const summary = highestSeverity
+    ? `Pallos verified ${failed.length} ${failed.length === 1 ? "risk signal" : "risk signals"}; the highest severity is ${highestSeverity}. Review the evidence before launch.`
+    : coverage < 50
+      ? "No risk signals were verified, but too few applicable checks were completed to provide strong assurance."
+      : "No risk signals were verified in the checks Pallos completed. Untested areas are excluded from the score and remain identified below.";
+  return { version: 2, score, grade, summary, coverage, checks };
 }
 
 function check(input: AssessmentCheck): AssessmentCheck { return input; }
@@ -64,7 +79,7 @@ export function assessEndpoint(snapshot: EndpointSnapshot, changes: MonitorChang
     check({ id: "technology-disclosure", title: "Technology disclosure", status: headers["x-powered-by"] ? "failed" : snapshot.statusCode ? "passed" : "not_tested", severity: "low", explanation: "Unnecessary framework disclosure gives attackers extra targeting information.", remediation: headers["x-powered-by"] ? "Disable the X-Powered-By response header." : null, evidence: headers["x-powered-by"] ? "An X-Powered-By header was observed; its value is intentionally not included here." : snapshot.statusCode ? "No X-Powered-By header was observed." : null }),
     check({ id: "browser-page-controls", title: "Browser page controls", status: "not_tested", severity: "medium", explanation: "CSP, frame restrictions, and referrer policy belong to rendered pages and cannot be judged reliably from a JSON API response.", remediation: null, evidence: "Not tested on this API-only scan." }),
   ];
-  return finalize(checks);
+  return finalizeSecurityAssessment(checks);
 }
 
 const findingSeverity = (severity: CodeFinding["severity"]): AssessmentSeverity => severity === "review" ? "medium" : severity;
@@ -91,5 +106,5 @@ export function assessCodeScan(files: ScanFile[], findings: CodeFinding[], treeT
   });
   checks.push(check({ id: "dependency-advisories", title: "Installed dependency advisories", status: "not_tested", severity: "high", explanation: "Source-only scanning does not prove which dependency versions are deployed or whether an advisory is exploitable.", remediation: null, evidence: "Not tested; Pallos did not run package installation or third-party code." }));
   if (treeTruncated) checks.push(check({ id: "repository-coverage", title: "Repository scan coverage", status: "not_tested", severity: "medium", explanation: "GitHub returned a truncated tree, so some eligible files may not have been available to Pallos.", remediation: null, evidence: "GitHub marked the repository tree response as truncated." }));
-  return finalize(checks);
+  return finalizeSecurityAssessment(checks);
 }
