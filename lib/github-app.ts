@@ -108,7 +108,7 @@ export async function ensureRepositoryPushWebhook(installationId: number, fullNa
   const existing = hooks.find((hook) => hook.config.url === webhookUrl);
   const body = JSON.stringify({
     active: true,
-    events: ["push"],
+    events: ["push", "pull_request"],
     config: { url: webhookUrl, content_type: "json", secret, insecure_ssl: "0" },
   });
 
@@ -119,6 +119,16 @@ export async function ensureRepositoryPushWebhook(installationId: number, fullNa
 
   const created = await githubFetch<RepositoryWebhook>(repositoryPath, token, { method: "POST", headers: { "Content-Type": "application/json" }, body });
   return { id: created.id, created: true };
+}
+
+export async function commentOnPullRequest(installationId: number, fullName: string, pullRequestNumber: number, body: string) {
+  const token = await installationToken(installationId);
+  const repositoryPath = `/repos/${fullName.split("/").map(encodeURIComponent).join("/")}`;
+  return githubFetch(`${repositoryPath}/issues/${pullRequestNumber}/comments`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
 }
 
 export async function removeRepositoryPushWebhook(installationId: number, fullName: string) {

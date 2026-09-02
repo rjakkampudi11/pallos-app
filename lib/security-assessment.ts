@@ -84,7 +84,7 @@ export function assessEndpoint(snapshot: EndpointSnapshot, changes: MonitorChang
 
 const findingSeverity = (severity: CodeFinding["severity"]): AssessmentSeverity => severity === "review" ? "medium" : severity;
 
-export function assessCodeScan(files: ScanFile[], findings: CodeFinding[], treeTruncated = false): SecurityAssessment {
+export function assessCodeScan(files: ScanFile[], findings: CodeFinding[], treeTruncated = false, dependencyAdvisoriesChecked = false): SecurityAssessment {
   const has = (pattern: RegExp) => files.some((file) => pattern.test(file.path) || pattern.test(file.content));
   const groups = new Map<string, CodeFinding[]>();
   for (const finding of findings) groups.set(finding.rule_id, [...(groups.get(finding.rule_id) || []), finding]);
@@ -98,13 +98,13 @@ export function assessCodeScan(files: ScanFile[], findings: CodeFinding[], treeT
     { id: "ai-abuse-controls", title: "AI endpoint abuse controls", rules: ["ai-route-abuse-controls"], applicable: has(/generateText|streamText|responses\.create|chat\.completions|anthropic\.messages/i), severity: "medium" as const, explanation: "Unprotected AI endpoints can be abused to consume quota and create unexpected cost.", remediation: "Require appropriate authentication, rate-limit callers, and cap model output on the server." },
     { id: "admin-authorization", title: "Admin route authorization", rules: ["admin-route-authorization"], applicable: has(/app\/api\/.*admin.*\/route/i), severity: "critical" as const, explanation: "Admin routes need explicit identity and permission enforcement.", remediation: "Authenticate the caller and enforce an admin role or permission before any privileged action." },
     { id: "supabase-rls", title: "Supabase Row Level Security", rules: ["supabase-permissive-policy", "supabase-rls-disabled", "supabase-anon-grant-all"], applicable: has(/supabase|create policy|row level security/i), severity: "critical" as const, explanation: "Overly broad database policies can expose or modify customer data.", remediation: "Enable RLS, remove broad anonymous grants, and scope policies to the authenticated user." },
+    { id: "dependency-advisories", title: "Installed dependency advisories", rules: [...new Set(findings.filter((finding) => finding.rule_id.startsWith("dependency-advisory:")).map((finding) => finding.rule_id))], applicable: dependencyAdvisoriesChecked, severity: "high" as const, explanation: "Locked dependency versions can contain publicly disclosed vulnerabilities.", remediation: "Review the advisory, upgrade to a patched version, test the application, and confirm whether the affected code path is reachable." },
   ];
   const checks: AssessmentCheck[] = definitions.map((definition) => {
     const matched = definition.rules.flatMap((rule) => groups.get(rule) || []);
     const tested = definition.always || definition.applicable;
     return check({ id: definition.id, title: definition.title, status: matched.length ? "failed" : tested ? "passed" : "not_tested", severity: matched.length ? findingSeverity(matched[0].severity) : definition.severity, explanation: definition.explanation, remediation: matched.length ? definition.remediation : null, evidence: matched.length ? `${matched.length} verified ${matched.length === 1 ? "finding" : "findings"}; first observed at ${matched[0].file_path}${matched[0].line_number ? `:${matched[0].line_number}` : ""}.` : tested ? `Checked ${files.length} eligible repository files with no matching finding.` : "The required technology or surface was not reliably detected." });
   });
-  checks.push(check({ id: "dependency-advisories", title: "Installed dependency advisories", status: "not_tested", severity: "high", explanation: "Source-only scanning does not prove which dependency versions are deployed or whether an advisory is exploitable.", remediation: null, evidence: "Not tested; Pallos did not run package installation or third-party code." }));
   if (treeTruncated) checks.push(check({ id: "repository-coverage", title: "Repository scan coverage", status: "not_tested", severity: "medium", explanation: "GitHub returned a truncated tree, so some eligible files may not have been available to Pallos.", remediation: null, evidence: "GitHub marked the repository tree response as truncated." }));
   return finalizeSecurityAssessment(checks);
 }

@@ -33,7 +33,7 @@ test("a single high-severity finding cannot be paired with a reassuring score", 
   const assessment = assessCodeScan(files, [{
     rule_id: "credentialed-wildcard-cors", severity: "high", category: "configuration", title: "Credentialed wildcard CORS",
     file_path: "app/api/data/route.ts", line_number: 1, evidence: "Wildcard origin with credentials",
-    explanation: "Cross-origin access is too broad.", suggested_fix: "Use an explicit allowlist.", fingerprint: "test-high",
+    explanation: "Cross-origin access is too broad.", suggested_fix: "Use an explicit allowlist.", fingerprint: "test-high", source_hash: "source-test-high",
   }]);
   assert.equal(assessment.grade, "High Risk");
   assert.ok(assessment.score <= 69);
@@ -46,4 +46,15 @@ test("code assessments reuse deterministic findings and keep unavailable checks 
   assert.ok(assessment.checks.some((item) => item.id === "admin-authorization" && item.status === "failed" && item.severity === "high"));
   assert.ok(assessment.checks.some((item) => item.id === "dependency-advisories" && item.status === "not_tested"));
   assert.equal(assessment.grade, "High Risk");
+});
+
+test("dependency advisories count only when a lockfile was actually checked", () => {
+  const lock = [{ path: "package-lock.json", content: "{}" }];
+  const finding = {
+    rule_id: "dependency-advisory:GHSA-test", severity: "high" as const, category: "Dependencies", title: "Affected dependency",
+    file_path: "package-lock.json", line_number: null, evidence: "GHSA-test applies.", explanation: "Affected version.",
+    suggested_fix: "Upgrade.", fingerprint: "dependency-test", source_hash: "lock-hash",
+  };
+  assert.equal(assessCodeScan(lock, [finding], false, true).checks.find((item) => item.id === "dependency-advisories")?.status, "failed");
+  assert.equal(assessCodeScan([{ path: "src/index.ts", content: "export {}" }], []).checks.find((item) => item.id === "dependency-advisories")?.status, "not_tested");
 });

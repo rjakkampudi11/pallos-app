@@ -12,6 +12,7 @@ export type CodeFinding = {
   evidence: string;
   explanation: string;
   suggested_fix: string;
+  source_hash: string;
 };
 
 const secretRules = [
@@ -36,6 +37,10 @@ function addFinding(list: CodeFinding[], input: Omit<CodeFinding, "fingerprint">
   const findingFingerprint = fingerprint(input.rule_id, input.file_path, input.line_number);
   if (list.some((finding) => finding.fingerprint === findingFingerprint)) return;
   list.push({ ...input, fingerprint: findingFingerprint });
+}
+
+function sourceHash(file: ScanFile) {
+  return createHash("sha256").update(file.content).digest("hex");
 }
 
 function firstMatch(content: string, pattern: RegExp) {
@@ -70,6 +75,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           evidence: `A value matching ${rule.name.toLowerCase()} was detected on line ${line}. The value was redacted and was not saved.`,
           explanation: "A committed credential can be copied from repository history and used outside your application.",
           suggested_fix: "Revoke and rotate the credential, move the replacement into server-only environment storage, and remove it from repository history.",
+          source_hash: sourceHash(file),
         });
       }
     }
@@ -88,6 +94,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `A client module references a Supabase service-role or secret key name on line ${line}. No credential value was saved.`,
         explanation: "Client code is delivered to browsers. A privileged database key there can bypass Row Level Security.",
         suggested_fix: "Move privileged Supabase operations into server-only code and expose only the minimum authenticated operation to the client.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -104,6 +111,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `A NEXT_PUBLIC_ variable with a sensitive name appears on line ${line}. Its value was not saved.`,
         explanation: "Next.js includes NEXT_PUBLIC_ values in browser JavaScript, where every visitor can read them.",
         suggested_fix: "Rename the variable without NEXT_PUBLIC_, use it only in server code, and rotate it if it has already been deployed.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -120,6 +128,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `An authentication-like cookie is configured with httpOnly: false near line ${line}.`,
         explanation: "Browser JavaScript can read this cookie, increasing the impact of a cross-site scripting bug.",
         suggested_fix: "Set httpOnly: true on authentication cookies and keep non-sensitive display preferences in separate cookies.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -139,6 +148,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `Wildcard origin and credentialed CORS settings appear together near line ${line}.`,
         explanation: "Credentialed cross-origin requests should be limited to explicitly trusted origins.",
         suggested_fix: "Validate the request Origin against an allowlist and return that exact trusted origin instead of *.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -155,6 +165,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: "This Stripe webhook route does not reference Stripe signature verification.",
         explanation: "Without signature verification, an attacker can send forged events to the webhook endpoint.",
         suggested_fix: "Read the raw request body and verify the stripe-signature header with Stripe webhooks.constructEvent before processing the event.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -171,6 +182,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `eval() or new Function() appears on line ${line}.`,
         explanation: "Executing strings as code can become remote code execution when any part of the string is influenced by a user or external service.",
         suggested_fix: "Replace dynamic execution with an explicit parser or allowlisted operation map. If unavoidable, prove that no untrusted input can reach it.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -192,6 +204,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           evidence: `Static review did not find ${missing.join(", ")} in this AI route.`,
           explanation: "An unguarded AI endpoint can be used by strangers to consume quota and create unexpectedly large bills.",
           suggested_fix: "Authenticate callers where appropriate, enforce per-user or per-IP rate limits, and cap output tokens at the server.",
+          source_hash: sourceHash(file),
         });
       }
     }
@@ -209,6 +222,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
         evidence: `This admin route does not show both an identity check and an explicit role or permission check.`,
         explanation: "Being signed in does not automatically make a user an administrator.",
         suggested_fix: "Verify the user on the server, enforce an explicit admin permission, and deny access by default.",
+        source_hash: sourceHash(file),
       });
     }
 
@@ -226,6 +240,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           evidence: `A policy uses an unconditional true expression near line ${line}.`,
           explanation: "An unconditional policy can expose or modify rows across users unless another control narrows access.",
           suggested_fix: "Scope the policy to auth.uid(), a workspace membership, or another verified ownership condition and test with two accounts.",
+          source_hash: sourceHash(file),
         });
       }
 
@@ -242,6 +257,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           evidence: `A migration disables Row Level Security near line ${line}.`,
           explanation: "Tables exposed through Supabase's Data API can become accessible without the row protections the application expects.",
           suggested_fix: "Keep RLS enabled, add narrowly scoped policies, and perform privileged work through server-only code.",
+          source_hash: sourceHash(file),
         });
       }
 
@@ -258,6 +274,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           evidence: `A GRANT ALL statement targets anon or public near line ${line}.`,
           explanation: "Broad anonymous privileges can allow untrusted visitors to read, change, or remove application data.",
           suggested_fix: "Revoke broad privileges and grant only the exact operations required, protected by tested RLS policies.",
+          source_hash: sourceHash(file),
         });
       }
     }

@@ -43,6 +43,7 @@ import { GitHubWorkspace } from "@/app/components/github-workspace";
 import { GitHubScanHistory } from "@/app/components/github-scan-history";
 import { SecuritySettings } from "@/app/components/security-settings";
 import { SecurityAssessmentPanel } from "@/app/components/security-assessment-panel";
+import { SupabaseInspection } from "@/app/components/supabase-inspection";
 import type { SecurityAssessment } from "@/lib/security-assessment";
 
 type View = "overview" | "monitor" | "findings" | "projects" | "runs" | "connections" | "insights" | "activity" | "settings" | "contact";
@@ -218,7 +219,7 @@ export default function Agent() {
           {view === "findings" && <><GitHubWorkspace mode="findings" notify={setToast} /><div className="demo-divider"><span>DEMO FINDINGS</span></div><FindingsView items={filteredFindings} selected={currentFinding} select={(finding) => setSelectedFinding(findings.indexOf(finding))} query={query} setQuery={setQuery} preparePrompt={() => setPromptOpen(true)} queueVerification={runScan} /></>}
           {view === "projects" && <><GitHubWorkspace mode="projects" notify={setToast} /><div className="demo-divider"><span>DEMO PROJECTS</span></div><ProjectsView selected={selectedProject} setSelected={setSelectedProject} runScan={runScan} /></>}
           {view === "runs" && <GitHubScanHistory mode="runs" notify={setToast} openConnections={() => openView("connections")} />}
-          {view === "connections" && <><GitHubWorkspace notify={setToast} /><div className="demo-divider"><span>OTHER CONNECTORS</span></div><ConnectionsView connected={connected} toggle={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} /></>}
+          {view === "connections" && <><GitHubWorkspace notify={setToast} /><SupabaseInspection notify={setToast} /><div className="demo-divider"><span>PLANNED CONNECTORS</span></div><ConnectionsView connected={connected} toggle={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} /></>}
           {view === "insights" && <InsightsView />}
           {view === "activity" && <GitHubScanHistory mode="activity" notify={setToast} openConnections={() => openView("connections")} />}
           {view === "settings" && <SettingsView notify={setToast} tab={settingsTab} setTab={setSettingsTab} appearance={appearance} updateAppearance={updateAppearance} connected={connected} toggleConnector={(name) => { setConnected((state) => ({ ...state, [name]: !state[name] })); setToast(`${name} sandbox connection updated.`); }} account={account} setAccount={setAccount} logout={logout} />}

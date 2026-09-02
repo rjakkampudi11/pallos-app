@@ -13,7 +13,7 @@ export async function GET() {
   const [{ data: repositories, error }, { data: scans }, { data: findings }] = await Promise.all([
     supabase.from("pallos_github_repositories").select("*").eq("user_id", auth.user.id).order("updated_at", { ascending: false }),
     supabase.from("pallos_code_scans").select("*").eq("user_id", auth.user.id).order("started_at", { ascending: false }).limit(100),
-    supabase.from("pallos_code_findings").select("*").eq("user_id", auth.user.id).eq("status", "open").order("created_at", { ascending: false }).limit(500),
+    supabase.from("pallos_code_findings").select("*").eq("user_id", auth.user.id).in("status", ["open", "false_positive", "accepted_risk", "intended_behavior", "resolved"]).order("created_at", { ascending: false }).limit(500),
   ]);
   if (error) {
     const setupRequired = error.code === "42P01" || error.code === "42501" || error.code === "PGRST205" || error.message.includes("schema cache") || error.message.includes("permission denied");
@@ -21,8 +21,9 @@ export async function GET() {
   }
   const enriched = (repositories || []).map((repository) => ({
     ...repository,
-    latest_scan: (scans || []).find((scan) => scan.repository_id === repository.id) || null,
-    findings: (findings || []).filter((finding) => finding.repository_id === repository.id),
+    latest_scan: (scans || []).find((scan) => scan.repository_id === repository.id && scan.trigger_type !== "pull_request") || null,
+    findings: (findings || []).filter((finding) => finding.repository_id === repository.id && finding.status !== "resolved"),
+    verified_fixes: (findings || []).filter((finding) => finding.repository_id === repository.id && finding.status === "resolved" && finding.resolved_by_scan_id).slice(0, 20),
   }));
   return withRefreshedSession(NextResponse.json({ repositories: enriched, configured: githubConfigured(), appSlug: githubAppSlug() }), auth);
 }
