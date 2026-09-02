@@ -27,6 +27,7 @@ function LoginContent() {
           email: form.get("email"),
           password: form.get("password"),
           displayName: form.get("displayName"),
+          rememberMe: mode === "login" && form.get("rememberMe") === "on",
           next: new URLSearchParams(window.location.search).get("next"),
         }),
       });
@@ -69,6 +70,7 @@ function LoginContent() {
           {mode === "signup" && <label>Display name<input name="displayName" autoComplete="name" placeholder="Your name" required /></label>}
           <label>Work email<input name="email" type="email" autoComplete="email" placeholder="you@company.com" required /></label>
           <label>Password<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="At least 8 characters" minLength={8} required /></label>
+          {mode === "login" && <label className="remember-me"><input name="rememberMe" type="checkbox" /><span>Remember me for 30 days</span></label>}
           {error && <p className="auth-error" role="alert">{error}</p>}
           <button className="run-button" disabled={submitting}>{submitting ? "Please wait…" : mode === "login" ? <><SignIn />Log in <ArrowRight /></> : <><UserPlus />Create account <ArrowRight /></>}</button>
         </form>
