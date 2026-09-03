@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./agent/agent.css";
+import "./improvements.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pallosagent.info"),
-  title: "Pallos Agent | Understand Risk in AI-Built Apps",
-  description: "Pallos helps vibecoders catch exposed keys, unsafe database access, risky admin routes, and confusing AI-generated changes before launch.",
+  title: "AI Code Security Scanner for GitHub | Pallos Agent",
+  description: "Scan AI-generated JavaScript, TypeScript, Next.js, and Supabase code for exposed secrets, unsafe access, and risky routes with plain-English results.",
   applicationName: "Pallos Agent",
   category: "Developer tools",
   icons: {
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://pallosagent.info",
     siteName: "Pallos Agent",
-    title: "Pallos Agent | Understand Risk in AI-Built Apps",
+    title: "AI Code Security Scanner for GitHub | Pallos Agent",
     description: "A clear second pass for exposed keys, unsafe access, risky routes, and AI-generated changes before launch.",
     images: [{ url: "/og-pallos-agent.png", width: 1731, height: 909, alt: "Pallos Agent — Know what your AI changed." }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pallos Agent | Understand Risk in AI-Built Apps",
+    title: "AI Code Security Scanner for GitHub | Pallos Agent",
     description: "A clear second pass for exposed keys, unsafe access, risky routes, and AI-generated changes before launch.",
     images: ["/og-pallos-agent.png"],
   },

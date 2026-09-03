@@ -29,6 +29,6 @@ export function SecurityAssessmentPanel({ assessment, compact = false }: { asses
   const unknown = calibrated.checks.filter((item) => item.status === "not_tested");
   return <section className={`security-assessment ${compact ? "compact" : ""}`}>
     <div className="assessment-score"><div className={`score-ring ${calibrated.grade.toLowerCase().replaceAll(" ", "-")}`}><strong>{calibrated.score}</strong><span>/100</span></div><div><span>SECURITY ASSESSMENT</span><h3>{calibrated.grade}</h3><p>{calibrated.summary}</p></div><dl><div><dt>Passed</dt><dd>{passed.length}</dd></div><div><dt>Risks</dt><dd>{failed.length}</dd></div><div><dt>Untested</dt><dd>{unknown.length}</dd></div><div><dt>Coverage</dt><dd>{calibrated.coverage}%</dd></div></dl></div>
-    {compact ? null : <div className="assessment-columns"><CheckList title="Passed checks" checks={passed} /><CheckList title="Risk signals" checks={failed} /><CheckList title="Unknown / not tested" checks={unknown} /></div>}
+    {compact ? null : <><div className="assessment-explainer"><strong>How to read this result</strong><span><b>Risk level</b> is based on the most serious verified signal.</span><span><b>Score</b> summarizes verified results.</span><span><b>Coverage</b> shows how much Pallos could actually test.</span></div><div className="assessment-columns"><CheckList title="Passed checks" checks={passed} /><CheckList title="Risk signals" checks={failed} /><CheckList title="Unknown / not tested" checks={unknown} /></div></>}
   </section>;
 }
