@@ -18,6 +18,13 @@ export type FreeScanSummary = {
 };
 
 const MAX_VISIBLE_FIELDS = 12;
+const PALLOS_DEMO_HOSTS = new Set(["pallosagent.com", "pallosagent.info", "www.pallosagent.com", "www.pallosagent.info"]);
+
+export function isPallosDemoUrl(url: URL): boolean {
+  return PALLOS_DEMO_HOSTS.has(url.hostname.toLowerCase())
+    && url.pathname === "/api/training/profile"
+    && url.search === "";
+}
 
 export function summarizeFreeScan(url: URL, snapshot: EndpointSnapshot): FreeScanSummary {
   const schema = snapshot.body === null ? {} : describeSchema(snapshot.body);

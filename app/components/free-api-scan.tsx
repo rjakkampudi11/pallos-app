@@ -17,8 +17,6 @@ import type { FreeScanSummary } from "@/lib/free-scan";
 
 type ScanState = "idle" | "scanning" | "complete" | "error";
 
-const demoUrl = "https://pallosagent.com/api/training/profile";
-
 export function FreeApiScan() {
   const [url, setUrl] = useState("");
   const [state, setState] = useState<ScanState>("idle");
@@ -87,7 +85,7 @@ export function FreeApiScan() {
           <div className="scan-form-heading"><BracketsCurly /><div><span>ONE SCAN · NO ACCOUNT</span><h3>Check a public JSON endpoint</h3></div></div>
           <label htmlFor="free-scan-url">Public JSON API URL</label>
           <div className="free-scan-input-row"><input id="free-scan-url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://your-app.com/api/status" autoComplete="url" /><button className="button" disabled={state === "scanning"}>{state === "scanning" ? <ArrowClockwise className="spin" /> : <ArrowRight weight="bold" />}{state === "scanning" ? "Checking…" : "Run free scan"}</button></div>
-          <button className="sample-api-button" type="button" onClick={() => setUrl(demoUrl)}>Use the safe Pallos demo API</button>
+          <button className="sample-api-button" type="button" onClick={() => setUrl(`${window.location.origin}/api/training/profile`)}>Use the safe Pallos demo API</button>
           <div className="scan-boundaries"><span><Check />HTTPS only</span><span><Check />Public endpoints only</span><span><Check />1 MB response limit</span></div>
           {state === "error" && <div className="free-scan-error" role="alert"><WarningCircle /><span>{message}{scanUsed && <Link href="https://pallosagent.com/login?mode=signup&next=/monitor">Create a free account to continue <ArrowRight /></Link>}</span></div>}
         </form>}

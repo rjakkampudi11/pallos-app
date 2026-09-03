@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { summarizeFreeScan } from "../lib/free-scan.ts";
+import { isPallosDemoUrl, summarizeFreeScan } from "../lib/free-scan.ts";
+
+test("only the official safe endpoint bypasses the one-scan quota", () => {
+  assert.equal(isPallosDemoUrl(new URL("https://pallosagent.info/api/training/profile")), true);
+  assert.equal(isPallosDemoUrl(new URL("https://pallosagent.com/api/training/profile")), true);
+  assert.equal(isPallosDemoUrl(new URL("https://pallosagent.info/api/training/profile?fault=1")), false);
+  assert.equal(isPallosDemoUrl(new URL("https://example.com/api/training/profile")), false);
+});
 
 test("the free scan exposes schema without response values", () => {
   const result = summarizeFreeScan(new URL("https://example.com/api/profile"), {
