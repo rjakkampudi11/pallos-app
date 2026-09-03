@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description: "Pallos helps vibecoders catch exposed keys, unsafe database access, risky admin routes, and confusing AI-generated changes before launch.",
   applicationName: "Pallos Agent",
   category: "Developer tools",
+  icons: {
+    icon: [{ url: "/pallos-icon.svg", type: "image/svg+xml" }],
+    shortcut: "/pallos-icon.svg",
+    apple: "/pallos-icon.svg",
+  },
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
