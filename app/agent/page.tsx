@@ -69,22 +69,22 @@ const projects = [
 ];
 
 const navGroups: { label: string; items: { id: View; label: string; icon: typeof House }[] }[] = [
-  { label: "Review", items: [{ id: "overview", label: "Home", icon: House }, { id: "monitor", label: "API monitor", icon: BracketsCurly }, { id: "findings", label: "Findings", icon: WarningCircle }, { id: "projects", label: "Projects", icon: Folder }, { id: "runs", label: "Agent runs", icon: Pulse }] },
-  { label: "Control", items: [{ id: "connections", label: "Connections", icon: LinkSimple }, { id: "insights", label: "Insights", icon: ChartLineUp }] },
-  { label: "Manage", items: [{ id: "activity", label: "Activity", icon: ClockCounterClockwise }, { id: "settings", label: "Settings", icon: Gear }, { id: "contact", label: "Contact", icon: EnvelopeSimple }] },
+  { label: "Scan", items: [{ id: "overview", label: "Home", icon: House }, { id: "projects", label: "Projects", icon: Folder }, { id: "findings", label: "Findings", icon: WarningCircle }, { id: "monitor", label: "API monitoring", icon: BracketsCurly }] },
+  { label: "History", items: [{ id: "runs", label: "Scan history", icon: Pulse }, { id: "activity", label: "Audit log", icon: ClockCounterClockwise }, { id: "insights", label: "Trends", icon: ChartLineUp }] },
+  { label: "Setup", items: [{ id: "connections", label: "Connections", icon: LinkSimple }, { id: "settings", label: "Settings", icon: Gear }, { id: "contact", label: "Help & feedback", icon: EnvelopeSimple }] },
 ];
 
 const viewMeta: Record<View, { eyebrow: string; title: string; description: string }> = {
-  overview: { eyebrow: "OPERATOR HOME", title: "Welcome back, Demo.", description: "Pallos is watching the parts of your AI-built app that deserve a second look." },
-  monitor: { eyebrow: "API MONITOR", title: "Know when a response contract breaks.", description: "Capture a healthy baseline, run a manual check, and see exactly what changed." },
-  findings: { eyebrow: "REVIEW QUEUE", title: "Findings with evidence.", description: "See what Pallos found, why it matters, and the next step to verify." },
-  projects: { eyebrow: "PROJECTS", title: "Apps under review.", description: "Keep each build, scan history, and launch state in one place." },
-  runs: { eyebrow: "AGENT RUNS", title: "Every scan, accounted for.", description: "Track what was checked, what changed, and which findings remain open." },
-  connections: { eyebrow: "CONNECTIONS", title: "Bring the right context together.", description: "Connect only the services Pallos needs for the review you choose." },
-  insights: { eyebrow: "INSIGHTS", title: "Patterns across your builds.", description: "Understand where risk repeats and which fixes are improving launch readiness." },
-  activity: { eyebrow: "ACTIVITY", title: "A clear record of decisions.", description: "See scans, reviews, status changes, and sandbox actions in order." },
-  settings: { eyebrow: "SETTINGS", title: "Workspace controls.", description: "Choose how the sandbox behaves and what the future live product should protect." },
-  contact: { eyebrow: "CONTACT", title: "Talk to the Pallos team.", description: "Questions, feedback, and social accounts in one clear place." },
+  overview: { eyebrow: "HOME", title: "Your security review at a glance.", description: "Start a scan, open an important finding, or check what changed since your last run." },
+  monitor: { eyebrow: "API MONITORING", title: "Get warned when an API changes or breaks.", description: "Save a working response, check it again later, and see the exact difference." },
+  findings: { eyebrow: "FINDINGS", title: "Security issues to review.", description: "See what Pallos found, why it matters, and the clearest next step." },
+  projects: { eyebrow: "PROJECTS", title: "Your connected projects.", description: "Choose a project, run a read-only scan, and review its results." },
+  runs: { eyebrow: "SCAN HISTORY", title: "Past scans and their results.", description: "See when each scan ran, what it checked, and whether it finished." },
+  connections: { eyebrow: "CONNECTIONS", title: "Connect the tools Pallos can check.", description: "Choose only the services needed for the type of review you want." },
+  insights: { eyebrow: "TRENDS", title: "See which risks keep returning.", description: "Understand what is improving and what still needs attention across your projects." },
+  activity: { eyebrow: "AUDIT LOG", title: "A record of important actions.", description: "Review scans, decisions, status changes, and account activity in order." },
+  settings: { eyebrow: "SETTINGS", title: "Account and security settings.", description: "Manage your profile, appearance, connections, and protection controls." },
+  contact: { eyebrow: "HELP & FEEDBACK", title: "Talk to the Pallos team.", description: "Ask a question, report a problem, or tell us what would make Pallos more useful." },
 };
 
 export default function Agent() {
@@ -97,7 +97,7 @@ export default function Agent() {
   const [query, setQuery] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
   const [connected, setConnected] = useState<Record<string, boolean>>({ GitHub: false, Supabase: true, Vercel: false, Stripe: false });
-  const [toast, setToast] = useState("Sandbox ready. All workspace data is illustrative.");
+  const [toast, setToast] = useState("Workspace ready.");
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
   const [profileMenu, setProfileMenu] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -193,7 +193,7 @@ export default function Agent() {
     <main className={`agent-app theme-${appearance.theme} accent-${appearance.accent} density-${appearance.density} ${appearance.reducedMotion ? "reduce-motion" : ""}`}>
       <aside className={`agent-side ${mobileNav ? "mobile-open" : ""}`}>
         <div className="agent-side-head"><button className="agent-brand" onClick={() => openView("overview")}><span className="agent-brand-dot" />Pallos Agent</button><button className="close-mobile" aria-label="Close navigation" onClick={() => setMobileNav(false)}><X /></button></div>
-        <div className="workspace-menu-wrap"><button className="workspace-switcher" aria-expanded={workspaceMenu} onClick={() => setWorkspaceMenu((open) => !open)}><span>PA</span><div><strong>Pallos Sandbox</strong><small>Development workspace</small></div><CaretDown className={workspaceMenu ? "rotated" : ""} /></button>{workspaceMenu && <div className="side-popover workspace-popover"><span>CURRENT WORKSPACE</span><button onClick={() => setWorkspaceMenu(false)}><b>PA</b><div><strong>Pallos Sandbox</strong><small>Active demo workspace</small></div><Check /></button><button onClick={() => openSettings("general")}><Gear /><div><strong>Workspace settings</strong><small>Review demo controls</small></div><ArrowRight /></button></div>}</div>
+        <div className="workspace-menu-wrap"><button className="workspace-switcher" aria-expanded={workspaceMenu} onClick={() => setWorkspaceMenu((open) => !open)}><span>PA</span><div><strong>Pallos workspace</strong><small>Your projects and scans</small></div><CaretDown className={workspaceMenu ? "rotated" : ""} /></button>{workspaceMenu && <div className="side-popover workspace-popover"><span>CURRENT WORKSPACE</span><button onClick={() => setWorkspaceMenu(false)}><b>PA</b><div><strong>Pallos workspace</strong><small>Active workspace</small></div><Check /></button><button onClick={() => openSettings("general")}><Gear /><div><strong>Workspace settings</strong><small>Account and scan controls</small></div><ArrowRight /></button></div>}</div>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {navGroups.map((group) => <div className="nav-group" key={group.label}><p>{group.label}</p>{group.items.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => openView(id)}><Icon weight={view === id ? "fill" : "regular"} /><span>{label}</span>{id === "findings" && <em>5</em>}</button>)}</div>)}
         </nav>
@@ -203,16 +203,16 @@ export default function Agent() {
       <section className="agent-main">
         <header className="agent-header">
           <button className="open-mobile" aria-label="Open navigation" onClick={() => setMobileNav(true)}><List /></button>
-          <div className="agent-breadcrumb"><small>Pallos Sandbox</small><strong>{view === "overview" ? "Home" : viewMeta[view].eyebrow.replace("REVIEW QUEUE", "Findings")}</strong></div>
+          <div className="agent-breadcrumb"><small>Pallos</small><strong>{view === "overview" ? "Home" : viewMeta[view].eyebrow}</strong></div>
           <label className="agent-search"><MagnifyingGlass /><input value={query} onFocus={() => { if (view !== "findings") openView("findings"); }} onChange={(event) => setQuery(event.target.value)} placeholder="Search findings or files" /></label>
           <div className="notification-wrap"><button className="icon-button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}><Bell /></button>{notificationsOpen && <div className="notification-panel"><div><span>NOTIFICATIONS</span><button aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X /></button></div><CheckCircle weight="fill" /><strong>You&apos;re all caught up.</strong><p>No new sandbox notifications. Completed demo runs will appear here.</p></div>}</div>
-          <button className="run-button" onClick={runScan} disabled={running}>{running ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{running ? "Scanning…" : "Run agent"}</button>
+          <button className="run-button" onClick={runScan} disabled={running}>{running ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{running ? "Scanning…" : "Run scan"}</button>
           <button className="login-button" onClick={logout}><SignOut />Log out</button>
         </header>
 
         <div className="agent-content">
           <div className="view-heading"><div><span>{meta.eyebrow}</span><h1>{meta.title}</h1><p>{meta.description}</p></div>{(["findings", "projects"] as View[]).includes(view) && <button className="secondary-action" onClick={runScan}><ArrowClockwise />Run demo scan</button>}</div>
-          <div className="demo-notice"><b>{view === "monitor" ? "LIVE MONITOR" : view === "runs" || view === "activity" ? "LIVE HISTORY" : "DEMO DATA"}</b><span>{view === "monitor" ? "Checks make real server-side requests. Monitor history requires the connected Supabase database." : view === "runs" || view === "activity" ? "These records come from real manual and automatic GitHub scans saved in Supabase." : "This sandbox is interactive, but no live repository or service is being scanned."}</span></div>
+          <div className="demo-notice"><b>{view === "monitor" ? "LIVE FEATURE" : view === "runs" || view === "activity" ? "SAVED HISTORY" : "LIVE + SAMPLE DATA"}</b><span>{view === "monitor" ? "API checks make real server-side requests and save results to your account." : view === "runs" || view === "activity" ? "These records come from manual and automatic GitHub scans saved to your account." : "Connected projects appear first. Clearly labeled sample data remains available so you can explore safely."}</span></div>
 
           {view === "overview" && <Overview runScan={runScan} running={running} lastRun={lastRun} openView={openView} selectFinding={(index) => { setSelectedFinding(index); openView("findings"); }} />}
           {view === "monitor" && <MonitorView notify={setToast} />}
@@ -234,7 +234,7 @@ export default function Agent() {
 
 function Overview({ runScan, running, lastRun, openView, selectFinding }: { runScan: () => void; running: boolean; lastRun: string; openView: (view: View) => void; selectFinding: (index: number) => void }) {
   return <>
-    <section className="start-here-card"><div><span>START HERE</span><h2>See the full Pallos workflow in three minutes.</h2><p>This sandbox uses a deliberately vulnerable sample app so you can explore safely before connecting anything real.</p></div><ol><li><b>1</b><span><strong>Run the agent</strong>Scan the demo project.</span></li><li><b>2</b><span><strong>Review evidence</strong>Open a finding and its file.</span></li><li><b>3</b><span><strong>Prepare and verify</strong>Copy a fix prompt, then rescan.</span></li></ol><button className="run-button" onClick={runScan} disabled={running}>{running ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{running ? "Scanning demo…" : "Start demo scan"}</button></section>
+    <section className="start-here-card"><div><span>START HERE</span><h2>Try the full review in three simple steps.</h2><p>Use the safe sample project first, or connect a GitHub project when you are ready.</p></div><ol><li><b>1</b><span><strong>Run a scan</strong>Check the sample project.</span></li><li><b>2</b><span><strong>Open a finding</strong>See the evidence and explanation.</span></li><li><b>3</b><span><strong>Fix and verify</strong>Make the change, then scan again.</span></li></ol><button className="run-button" onClick={runScan} disabled={running}>{running ? <ArrowClockwise className="spin" /> : <Play weight="fill" />}{running ? "Scanning sample…" : "Try a sample scan"}</button></section>
     <section className="overview-status">
       <div><span><i className="status-light" />WORKSPACE READY</span><strong>API monitoring is active</strong></div>
       <div><span>LAST AGENT RUN</span><strong>{lastRun}</strong></div>
