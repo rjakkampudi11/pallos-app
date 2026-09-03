@@ -11,6 +11,9 @@ export function proxy(request: NextRequest) {
   if (host === "pallosagent.com" || isVercelDeployment || host === "localhost" || host === "127.0.0.1") {
     const path = request.nextUrl.pathname;
     const hasSession = Boolean(request.cookies.get("pallos-access-token")?.value || request.cookies.get("pallos-refresh-token")?.value);
+    if ((host === "localhost" || host === "127.0.0.1") && path === "/") {
+      return NextResponse.next();
+    }
     if (host === "pallosagent.com" && (path === "/privacy" || path === "/terms")) {
       const url = request.nextUrl.clone();
       url.hostname = "pallosagent.info";
