@@ -48,10 +48,10 @@ export function CookieConsent() {
 
   if (!ready) return null;
   return <>
-    {!consent || customizing ? <div className="cookie-consent" role="dialog" aria-modal="true" aria-labelledby="cookie-title">
+    {!consent || customizing ? <div className="cookie-consent" role="dialog" aria-modal="true" aria-labelledby="cookie-title" aria-describedby="cookie-description">
       <div className="cookie-consent-copy">
         <span>YOUR PRIVACY</span><h2 id="cookie-title">Choose how Pallos uses cookies</h2>
-        <p>Necessary cookies keep accounts secure. With your permission, Google Analytics helps us understand usage, and advertising cookies may measure or personalize campaigns. You can change this anytime.</p>
+        <p id="cookie-description">Necessary cookies keep accounts secure. With your permission, Google Analytics helps us understand usage, and advertising cookies may measure or personalize campaigns. You can change this anytime.</p>
         <Link href="/cookies">Read the Cookie Policy</Link>
       </div>
       {customizing ? <div className="cookie-choices">
