@@ -9,5 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: "https://pallosagent.info/privacy", lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: "https://pallosagent.info/terms", lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: "https://pallosagent.info/cookies", lastModified, changeFrequency: "monthly", priority: 0.3 },
+    { url: "https://pallosagent.info/guides/ai-code-security-checklist", lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: "https://pallosagent.info/guides/supabase-security-checklist", lastModified, changeFrequency: "monthly", priority: 0.7 },
   ];
 }

@@ -98,13 +98,11 @@ export default function Home() {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Pallos Agent",
-    applicationCategory: "DeveloperApplication",
-    operatingSystem: "Web",
-    url: "https://pallosagent.info",
-    description: "A plain-English security review for AI-built apps that finds exposed secrets, unsafe access, and risky code before launch.",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/PreOrder" },
+    "@graph": [
+      { "@type": "Organization", "@id": "https://pallosagent.info/#organization", name: "Pallos Agent", url: "https://pallosagent.info", logo: "https://pallosagent.info/pallos-icon.svg", email: "pallosagent@gmail.com", sameAs: socialAccounts.map((account) => account.href) },
+      { "@type": "WebSite", "@id": "https://pallosagent.info/#website", name: "Pallos Agent", url: "https://pallosagent.info", publisher: { "@id": "https://pallosagent.info/#organization" }, inLanguage: "en-US" },
+      { "@type": "SoftwareApplication", "@id": "https://pallosagent.info/#software", name: "Pallos Agent", applicationCategory: "SecurityApplication", applicationSubCategory: "Developer security tool", operatingSystem: "Web", url: "https://pallosagent.info", description: "A plain-English security review for AI-built apps that finds exposed secrets, unsafe access, and risky code before launch.", featureList: ["Exposed credential detection", "Admin route authorization checks", "Supabase security checks", "Dependency advisory checks", "API monitoring", "Fix verification"], offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" }, provider: { "@id": "https://pallosagent.info/#organization" } },
+    ],
   };
 
   const faqData = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqs.map(([question, answer]) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })) };

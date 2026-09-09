@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   description: "Scan AI-generated JavaScript, TypeScript, Next.js, and Supabase code for exposed secrets, unsafe access, and risky routes with plain-English results.",
   applicationName: "Pallos Agent",
   category: "Developer tools",
+  keywords: ["AI code security scanner", "GitHub security scanner", "Next.js security scanner", "Supabase security checker", "AI-generated code security", "exposed API key scanner"],
+  creator: "Pallos Agent",
+  publisher: "Pallos Agent",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   icons: {
     icon: [{ url: "/pallos-icon.svg", type: "image/svg+xml" }],
     shortcut: "/pallos-icon.svg",
