@@ -21,7 +21,7 @@ const checks = [
 
 const steps = [
   ["01", "Connect a project", "Choose a GitHub repository or start with the safe demo. Pallos only reads the code you allow it to see."],
-  ["02", "Review the important risks", "Pallos shows the affected file, what it found, and why it matters in plain language."],
+  ["02", "Review the important risks", "Pallos shows the affected file, what it found, why it matters, and a practical way to fix it in plain language."],
   ["03", "Fix and check again", "Use the suggested next step, make the change yourself, then rescan to verify the issue is gone."],
 ];
 
@@ -128,7 +128,7 @@ export default function Home() {
         <div className="hero-copy-wrap reveal">
           <div className="eyebrow"><span className="pulse" />AI CODE SECURITY SCANNER FOR GITHUB</div>
           <h1>Find risky code before your users do.</h1>
-          <p className="hero-copy">Pallos reads your project and points out security mistakes in plain English. You see what is wrong, where it is, and what to do next.</p>
+          <p className="hero-copy">Pallos reads your project and points out security mistakes in plain English. You see what is wrong, where it is, how serious it is, and practical ways to fix it.</p>
           <div className="hero-actions"><a className="button" href="#free-scan">Try the safe demo <ArrowRight weight="bold" /></a><a className="ghost-button" href="https://pallosagent.com/login?mode=signup&next=/connections">Scan a GitHub project</a></div>
           <div className="hero-proof"><span><Check weight="bold" />Read-only access</span><span><Check weight="bold" />Plain-English results</span><span><Check weight="bold" />You control every fix</span></div>
         </div>
