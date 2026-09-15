@@ -5,7 +5,12 @@ export function proxy(request: NextRequest) {
   const isVercelDeployment = host?.endsWith(".vercel.app") ?? false;
   if (host === "www.pallosagent.com" || host === "www.pallosagent.info") {
     const url = request.nextUrl.clone();
-    url.hostname = host.replace(/^www\./, "");
+    url.hostname = "pallosagent.com";
+    return NextResponse.redirect(url, 308);
+  }
+  if (host === "pallosagent.info") {
+    const url = request.nextUrl.clone();
+    url.hostname = "pallosagent.com";
     return NextResponse.redirect(url, 308);
   }
   if (host === "pallosagent.com" || isVercelDeployment || host === "localhost" || host === "127.0.0.1") {
@@ -14,17 +19,7 @@ export function proxy(request: NextRequest) {
     if ((host === "localhost" || host === "127.0.0.1") && path === "/") {
       return NextResponse.next();
     }
-    if (host === "pallosagent.com" && (path === "/privacy" || path === "/terms")) {
-      const url = request.nextUrl.clone();
-      url.hostname = "pallosagent.info";
-      return NextResponse.redirect(url, 308);
-    }
-    if (host === "pallosagent.com" && path === "/" && !hasSession) {
-      const url = request.nextUrl.clone();
-      url.hostname = "pallosagent.info";
-      return NextResponse.redirect(url, 308);
-    }
-    if (path === "/" || path === "/app" || path === "/agent") {
+    if (path === "/app" || path === "/agent") {
       const url = request.nextUrl.clone();
       url.pathname = hasSession ? "/home" : "/login";
       return NextResponse.redirect(url);

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pallosagent.info"),
+  metadataBase: new URL("https://pallosagent.com"),
   title: "AI Code Security Scanner for GitHub | Pallos Agent",
   description: "Scan AI-generated JavaScript, TypeScript, Next.js, and Supabase code for exposed secrets, unsafe access, and risky routes with plain-English results.",
   applicationName: "Pallos Agent",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    url: "https://pallosagent.info",
+    url: "https://pallosagent.com",
     siteName: "Pallos Agent",
     title: "AI Code Security Scanner for GitHub | Pallos Agent",
     description: "A clear second pass for exposed keys, unsafe access, risky routes, and AI-generated changes before launch.",
