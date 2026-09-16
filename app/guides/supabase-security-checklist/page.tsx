@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalShell } from "../../components/legal-shell";
 
-export const metadata = { title: "Supabase Security Checklist for AI-Built Apps | Pallos Agent", description: "Check RLS, service-role keys, authentication, storage, functions, and API access before launching a Supabase app.", alternates: { canonical: "/guides/supabase-security-checklist" } };
+export const metadata = { title: "Supabase Security Checklist for AI-Built Apps | Pallos", description: "Check RLS, service-role keys, authentication, storage, functions, and API access before launching a Supabase app.", alternates: { canonical: "/guides/supabase-security-checklist" } };
 
 export default function Page() { return <LegalShell eyebrow="SUPABASE GUIDE" title="Supabase security checklist" lead="A focused review for founders and developers launching an AI-built app on Supabase.">
   <section><h2>Protect privileged keys</h2><p>The anon key is designed for client use with correctly configured policies. The service-role key bypasses Row Level Security and must remain server-only. If a privileged key entered a public bundle or repository, rotate it.</p></section>

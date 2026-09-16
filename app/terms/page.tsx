@@ -1,8 +1,8 @@
 import { LegalShell } from "../components/legal-shell";
 
-export const metadata = { title: "Terms of Service | Pallos Agent", description: "Terms for Pallos Agent and its paid implementation services.", alternates: { canonical: "/terms" } };
+export const metadata = { title: "Terms of Service | Pallos", description: "Terms for Pallos and its paid implementation services.", alternates: { canonical: "/terms" } };
 
-export default function TermsPage() { return <LegalShell eyebrow="LEGAL" title="Terms of Service" lead="Terms for using Pallos Agent and any paid review or implementation service.">
+export default function TermsPage() { return <LegalShell eyebrow="LEGAL" title="Terms of Service" lead="Terms for using Pallos and any paid review or implementation service.">
   <section><h2>Acceptance and eligibility</h2><p>By using Pallos, you agree to these terms and confirm you can enter a binding agreement. If you act for an organization, you confirm you have authority to bind it.</p></section>
   <section><h2>Authorized use only</h2><p>You may connect or test only repositories, websites, accounts, and systems you own or are explicitly authorized to test. You may not disrupt the service, evade limits, access another person’s data, or use results unlawfully.</p></section>
   <section><h2>What Pallos does—and does not prove</h2><p>Pallos is an early-stage security scanner and monitoring tool. Results may be incomplete or incorrect and are not a security certification, compliance determination, penetration test, or guarantee. You remain responsible for review, testing, backups, and deployment decisions.</p></section>

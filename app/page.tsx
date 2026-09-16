@@ -1,74 +1,58 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import {
-  ArrowClockwise, ArrowRight, BracketsCurly, CaretDown, Check, CheckCircle,
-  Code, Copy, Database, DiscordLogo, EnvelopeSimple, FacebookLogo, GitBranch,
-  InstagramLogo, Key, LinkedinLogo, List, MagnifyingGlass, TiktokLogo,
-  UserFocus, UsersThree, X, XLogo,
-} from "@phosphor-icons/react";
+import { ArrowRight, Check, Copy, List, X } from "@phosphor-icons/react";
 import { FreeApiScan } from "@/app/components/free-api-scan";
 
 const checks = [
-  { icon: Key, title: "Exposed keys and tokens", body: "Find private credentials that accidentally ended up in code a visitor can reach." },
-  { icon: Database, title: "Overly open database access", body: "Spot Supabase rules that may let the wrong person read or change data." },
-  { icon: UserFocus, title: "Weak admin protection", body: "Check whether sensitive actions confirm the user has the right permission—not just that they signed in." },
-  { icon: BracketsCurly, title: "Private work running in public code", body: "Flag server-only operations that were accidentally placed in browser code." },
-  { icon: GitBranch, title: "Risky code changes", body: "Explain which recent changes deserve a closer look and why." },
-  { icon: MagnifyingGlass, title: "Fixes that still need proof", body: "Rescan after a change so an issue is not marked fixed until the risky pattern is gone." },
+  ["Exposed secrets", "API keys included in browser-accessible code"],
+  ["Access control", "Admin routes missing role validation"],
+  ["Database permissions", "Supabase policies allowing overly broad access"],
+  ["Client/server boundaries", "Sensitive operations inside client components"],
+  ["API authorization", "Endpoints missing authentication or permission checks"],
+  ["Incomplete fixes", "Previously identified risks that still appear unresolved"],
 ];
 
-const freeTools = [
-  { icon: Key, title: "GitHub secret scanner", body: "Check a public repository for committed credential patterns and exposed server-only values.", href: "/tools/github-secret-scanner" },
-  { icon: Database, title: "Supabase RLS checker", body: "Review policies, privileged keys, and database-access assumptions visible in source code.", href: "/tools/supabase-rls-checker" },
-  { icon: BracketsCurly, title: "Next.js security scanner", body: "Look for risky routes, weak authorization, webhook mistakes, and unsafe client/server boundaries.", href: "/tools/nextjs-security-scanner" },
+const findings = [
+  { severity: "Critical", title: "Exposed Supabase service key", file: "src/lib/supabase-client.ts", line: "14", evidence: "The Supabase service role key appears in client-accessible code.", impact: "This key may bypass row-level security rules and allow privileged database access.", fix: "Move the service role key to a server-only environment variable and rotate the exposed credential." },
+  { severity: "High", title: "Missing authorization check", file: "app/api/admin/users/route.ts", line: "32", evidence: "The route verifies authentication but does not verify whether the requester has an admin role.", impact: "Any authenticated user may be able to access administrative functionality.", fix: "Check the user role on the server before returning privileged data." },
+  { severity: "Review", title: "Sensitive work in a client component", file: "components/payment-settings.tsx", line: "21", evidence: "A privileged operation is called from code that runs in the browser.", impact: "Browser code can be inspected or changed by the person using it.", fix: "Move the privileged operation behind an authenticated server route and return only the fields the interface needs." },
 ];
 
 const steps = [
-  ["01", "Connect a project", "Choose a GitHub repository or start with the safe demo. Pallos only reads the code you allow it to see."],
-  ["02", "Review the important risks", "Pallos shows the affected file, what it found, why it matters, and a practical way to fix it in plain language."],
-  ["03", "Fix and check again", "Use the suggested next step, make the change yourself, then rescan to verify the issue is gone."],
+  ["01", "Connect or submit a project", "Use a public source or authorize read-only repository access."],
+  ["02", "Pallos reviews security-sensitive code", "The scan checks secrets, authentication, authorization, routes, database access, and client/server boundaries."],
+  ["03", "Review findings", "Each finding includes severity, file location, explanation, and suggested remediation."],
+  ["04", "Rescan", "Run another scan after changes to see whether the issue is still present."],
 ];
 
-const demoFindings = [
-  { level: "Critical", title: "Service key exposed to the browser", file: "src/lib/supabase-client.ts", note: "Move the key into server-only environment storage and verify database policies." },
-  { level: "High", title: "Private action runs in a client component", file: "components/payment-settings.tsx", note: "Move the operation behind a server route and return only safe response fields." },
-  { level: "Review", title: "Admin route lacks role enforcement", file: "app/api/admin/users/route.ts", note: "Require an admin role on the server before returning account data." },
+const trustRows = [
+  ["Repository permissions", "Read-only contents and metadata for repositories you select"],
+  ["Automatic changes", "Pallos does not modify, push, merge, or deploy your code"],
+  ["GitHub credentials", "Short-lived installation tokens are created when needed; permanent access tokens are not stored"],
+  ["Code retention", "Repository source is fetched for scanning; Pallos stores findings and scan metadata, not complete source files"],
+  ["Scan results", "Findings and scan records stay with your account until you disconnect the repository or delete your Pallos data"],
+  ["Revoking access", "Disconnect in Pallos and revoke the app through GitHub at any time"],
+  ["Security contact", "pallosagent@gmail.com"],
 ];
 
-const faqs = [
-  ["What does the free API check do?", "It checks whether one public JSON URL responds correctly and maps its structure without showing the returned values. The safe Pallos demo can be tested as many times as you want."],
-  ["Does Pallos guarantee my app is secure?", "No. Pallos checks a focused set of risks and shows exactly what it reviewed. It is a useful second pass, not a replacement for a full security program."],
-  ["Do I need to be a security expert?", "No. Pallos is written for founders, students, and developers who want clear explanations instead of a dense security report."],
-  ["Will Pallos automatically change my app?", "Not in V1. Pallos explains the issue and prepares a fix path, but you stay in control of every code change."],
-  ["What stacks will be supported first?", "The private beta is focused on JavaScript, TypeScript, Next.js, Supabase, and the common services used around them."],
-];
-
-const socialAccounts = [
-  { label: "Instagram", handle: "@pallos_agent", href: "https://www.instagram.com/pallos_agent/", icon: InstagramLogo },
-  { label: "Facebook", handle: "Pallos", href: "https://www.facebook.com/Pallos", icon: FacebookLogo },
-  { label: "X", handle: "@Pallos_Agent", href: "https://x.com/Pallos_Agent", icon: XLogo },
-  { label: "TikTok", handle: "@pallos_agent", href: "https://www.tiktok.com/@pallos_agent", icon: TiktokLogo },
-  { label: "LinkedIn", handle: "Pallos", href: "https://www.linkedin.com/in/pallos", icon: LinkedinLogo },
-  { label: "Indie Hackers", handle: "@PallosAgent", href: "https://www.indiehackers.com/@PallosAgent", icon: UsersThree },
-];
-
+const tools = ["Cursor", "Claude", "ChatGPT", "Lovable", "Bolt", "Replit", "GitHub Copilot"];
 type SubmitState = "idle" | "sending" | "success" | "error";
 type RescanState = "idle" | "running" | "complete";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeFinding, setActiveFinding] = useState(0);
-  const [submitState, setSubmitState] = useState<SubmitState>("idle");
-  const [submitMessage, setSubmitMessage] = useState("");
-  const [otherTool, setOtherTool] = useState(false);
+  const [activeFinding, setActiveFinding] = useState(1);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [rescanState, setRescanState] = useState<RescanState>("idle");
-
-  const activeDemoFinding = demoFindings[activeFinding];
-  const fixPrompt = `Review ${activeDemoFinding.file} for: ${activeDemoFinding.title}. ${activeDemoFinding.note} Keep the change minimal, explain what changed, and include a verification checklist. Do not expose secrets or weaken authorization.`;
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [otherTool, setOtherTool] = useState(false);
+  const finding = findings[activeFinding];
+  const fixPrompt = `Review ${finding.file}:${finding.line} for: ${finding.title}. ${finding.fix} Keep the change minimal, explain what changed, and include a verification checklist. Do not expose secrets or weaken authorization.`;
 
   async function copyPrompt() {
     await navigator.clipboard.writeText(fixPrompt);
@@ -79,7 +63,7 @@ export default function Home() {
   function queueRescan() {
     if (rescanState === "running") return;
     setRescanState("running");
-    window.setTimeout(() => setRescanState("complete"), 1400);
+    window.setTimeout(() => setRescanState("complete"), 1300);
   }
 
   async function submitWaitlist(event: FormEvent<HTMLFormElement>) {
@@ -105,65 +89,40 @@ export default function Home() {
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "Organization", "@id": "https://pallosagent.com/#organization", name: "Pallos Agent", url: "https://pallosagent.com", logo: "https://pallosagent.com/pallos-icon.svg", email: "pallosagent@gmail.com", sameAs: socialAccounts.map((account) => account.href) },
-      { "@type": "WebSite", "@id": "https://pallosagent.com/#website", name: "Pallos Agent", url: "https://pallosagent.com", publisher: { "@id": "https://pallosagent.com/#organization" }, inLanguage: "en-US" },
-      { "@type": "SoftwareApplication", "@id": "https://pallosagent.com/#software", name: "Pallos Agent", applicationCategory: "SecurityApplication", applicationSubCategory: "Developer security tool", operatingSystem: "Web", url: "https://pallosagent.com", description: "A plain-English security review for AI-built apps that finds exposed secrets, unsafe access, and risky code before launch.", featureList: ["Exposed credential detection", "Admin route authorization checks", "Supabase security checks", "Dependency advisory checks", "API monitoring", "Fix verification"], offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" }, provider: { "@id": "https://pallosagent.com/#organization" } },
+      { "@type": "Organization", "@id": "https://pallosagent.com/#organization", name: "Pallos", url: "https://pallosagent.com", logo: "https://pallosagent.com/pallos-icon.svg", email: "pallosagent@gmail.com" },
+      { "@type": "WebSite", "@id": "https://pallosagent.com/#website", name: "Pallos", url: "https://pallosagent.com", publisher: { "@id": "https://pallosagent.com/#organization" }, inLanguage: "en-US" },
+      { "@type": "SoftwareApplication", name: "Pallos", applicationCategory: "SecurityApplication", operatingSystem: "Web", url: "https://pallosagent.com", description: "Security checks for AI-built JavaScript, TypeScript, Next.js, and Supabase applications.", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } },
     ],
   };
 
-  const faqData = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqs.map(([question, answer]) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })) };
-
-  return <main className="outreach-site" id="top">
+  return <main className="pallos-home" id="top">
     <a className="skip-link" href="#main-content">Skip to content</a>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqData) }} />
 
-    <header className="site-header">
-      <nav className="nav shell" aria-label="Main navigation">
-        <Link className="brand" href="#top"><span className="brand-dot" />Pallos Agent</Link>
-        <div className={`navlinks ${menuOpen ? "open" : ""}`}>
-          <a href="#checks" onClick={() => setMenuOpen(false)}>What it checks</a><a href="#how" onClick={() => setMenuOpen(false)}>How it works</a><Link href="/proof" onClick={() => setMenuOpen(false)}>Proof Lab</Link><Link href="/scan" onClick={() => setMenuOpen(false)}>Free repo scan</Link><a href="#faq" onClick={() => setMenuOpen(false)}>Questions</a><a className="mobile-nav-cta" href="https://pallosagent.com/login?mode=signup&next=/connections" onClick={() => setMenuOpen(false)}>Start testing</a>
-        </div>
-        <a className="button small nav-cta" href="https://pallosagent.com/login?mode=signup&next=/connections">Start testing <ArrowRight weight="bold" /></a>
-        <button className="menu-button" aria-expanded={menuOpen} aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <List />}</button>
-      </nav>
-    </header>
+    <header className="pallos-header"><nav className="pallos-shell" aria-label="Main navigation"><Link className="pallos-brand" href="#top"><Image src="/pallos-icon.svg" alt="" width={24} height={24} />Pallos</Link><div className={`pallos-nav-links ${menuOpen ? "open" : ""}`}><a href="#checks" onClick={() => setMenuOpen(false)}>Product</a><a href="#how" onClick={() => setMenuOpen(false)}>How It Works</a><Link href="/methodology" onClick={() => setMenuOpen(false)}>Methodology</Link><Link href="/security" onClick={() => setMenuOpen(false)}>Security</Link></div><div className="pallos-nav-actions"><Link href="/login">Sign In</Link><Link className="pallos-button primary" href="/scan">Scan a Project</Link></div><button className="pallos-menu" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X /> : <List />}</button></nav></header>
 
     <div id="main-content">
-      <section className="hero section shell">
-        <div className="hero-copy-wrap reveal">
-          <div className="eyebrow"><span className="pulse" />AI CODE SECURITY SCANNER FOR GITHUB</div>
-          <h1>Find risky code before your users do.</h1>
-          <p className="hero-copy">Pallos reads your project and points out security mistakes in plain English. You see what is wrong, where it is, how serious it is, and practical ways to fix it.</p>
-          <div className="hero-actions"><Link className="button" href="/scan">Scan a public repo <ArrowRight weight="bold" /></Link><Link className="ghost-button" href="/proof">See real demo scans</Link><a className="ghost-button" href="https://pallosagent.com/login?mode=signup&next=/connections">Connect a private repo</a></div>
-          <div className="hero-proof"><span><Check weight="bold" />Read-only access</span><span><Check weight="bold" />Plain-English results</span><span><Check weight="bold" />You control every fix</span></div>
-        </div>
-        <div className="product-window reveal delay-1" aria-label="Pallos scan preview">
-          <div className="window-top"><div><span /><span /><span /></div><small>pallos / scan-result</small><b>DEMO</b></div>
-          <div className="window-body"><div className="scan-summary"><div><span>Example result</span><strong>2 issues need your attention</strong></div></div>{demoFindings.slice(0, 2).map((finding, index) => <div className={`preview-finding ${index === 0 ? "critical" : "high"}`} key={finding.title}><span>0{index + 1}</span><div><strong>{finding.title}</strong><small>{finding.file}</small></div><em>{finding.level}</em></div>)}<div className="evidence-note"><Code /><div><b>Why this matters</b><p>A private database key can bypass the rules your public app depends on.</p></div></div><div className="window-footer"><span>Read-only scan</span><b>No files changed</b></div></div>
-        </div>
-      </section>
+      <section className="pallos-hero pallos-shell"><div className="pallos-hero-copy"><p className="pallos-label">DEVELOPER SECURITY SCANNER</p><h1>Security checks for AI-built apps.</h1><p>Pallos reviews JavaScript, TypeScript, Next.js, and Supabase projects for exposed secrets, weak access controls, unsafe routes, and other common launch-time security mistakes.</p><div className="pallos-actions"><Link className="pallos-button primary" href="/scan">Scan a project <ArrowRight /></Link><a className="pallos-button secondary" href="#free-scan">Try the safe demo</a></div><div className="pallos-trust-line">Read-only access <i /> No automatic fixes <i /> File-level findings <i /> You control every change</div></div><article className="hero-finding" aria-label="Example Pallos finding"><div className="finding-window"><span>pallos / scan-result</span><span>SCAN 0042</span></div><div className="finding-severity critical">CRITICAL</div><h2>Exposed Supabase service key</h2><code>src/lib/supabase-client.ts:14</code><p>The Supabase service role key appears in client-accessible code.</p><div className="hero-code" aria-label="Code evidence"><span>12&nbsp;&nbsp; import &#123; createClient &#125; from &quot;@supabase/supabase-js&quot;</span><span>13</span><strong>14&nbsp;&nbsp; const admin = createClient(url, serviceRoleKey)</strong></div><div className="finding-explanation"><section><span>WHY THIS MATTERS</span><p>This key may bypass row-level security rules and allow privileged database access.</p></section><section><span>SUGGESTED FIX</span><p>Move the service role key to a server-only environment variable and rotate the exposed credential.</p></section></div></article></section>
+
+      <section className="pallos-section pallos-shell" id="checks"><div className="section-head"><div><p className="pallos-label">COVERAGE</p><h2>What Pallos checks</h2></div><p>Focused checks for security mistakes common in fast-moving JavaScript applications.</p></div><div className="checks-table" role="table" aria-label="What Pallos checks"><div className="checks-row checks-header" role="row"><span role="columnheader">Check</span><span role="columnheader">Example</span></div>{checks.map(([check, example]) => <div className="checks-row" role="row" key={check}><strong role="cell">{check}</strong><span role="cell">{example}</span></div>)}</div></section>
 
       <FreeApiScan />
 
-      <section className="section shell discovery-tools" aria-labelledby="free-tools-title"><div className="section-intro"><div className="eyebrow">FREE REPOSITORY TOOLS</div><h2 id="free-tools-title">Start with the check you need.</h2><p>Each page explains what Pallos can verify, what stays untested, and how to run the read-only scan.</p></div><div className="discovery-tool-grid">{freeTools.map(({ icon: Icon, title, body, href }) => <Link href={href} key={title}><Icon /><h3>{title}</h3><p>{body}</p><span>Open free tool <ArrowRight weight="bold" /></span></Link>)}</div></section>
+      <section className="pallos-section pallos-shell finding-demo" id="finding"><div className="section-head"><div><p className="pallos-label">REAL FINDING · REAL CONTEXT</p><h2>What a Pallos finding looks like</h2></div><p>Select an example to review the evidence and next step.</p></div><div className="finding-selector">{findings.map((item, index) => <button className={activeFinding === index ? "active" : ""} onClick={() => { setActiveFinding(index); setRescanState("idle"); }} key={item.title}><span className={item.severity.toLowerCase()}>{item.severity}</span><strong>{item.title}</strong><code>{item.file}:{item.line}</code></button>)}</div><article className="finding-dossier"><div className="dossier-meta"><div><span>SEVERITY</span><strong className={finding.severity.toLowerCase()}>{finding.severity}</strong></div><div><span>FILE</span><code>{finding.file}</code></div><div><span>LINE</span><code>{finding.line}</code></div><div><span>ISSUE</span><strong>{finding.title}</strong></div></div><div className="dossier-body"><section><span>EVIDENCE</span><p>{finding.evidence}</p></section><section><span>WHY IT MATTERS</span><p>{finding.impact}</p></section><section><span>SUGGESTED REMEDIATION</span><p>{finding.fix}</p></section></div><div className="dossier-actions"><button onClick={() => setPromptOpen(true)}>Prepare fix prompt</button><button onClick={queueRescan} disabled={rescanState === "running"}>{rescanState === "running" ? "Checking…" : "Queue a rescan"}</button>{rescanState === "complete" && <span><Check />Rescan complete. This example still needs review.</span>}</div></article></section>
 
-      <section className="section shell split-section" id="checks"><div className="section-intro sticky-intro"><div className="eyebrow">WHAT IT CHECKS</div><h2>Six common mistakes, explained simply.</h2><p>Pallos focuses on problems that can expose private data or give the wrong person too much access.</p></div><div className="check-list">{checks.map(({ icon: Icon, title, body }, index) => <article key={title}><div className="check-number">0{index + 1}</div><Icon className="check-icon" /><div><h3>{title}</h3><p>{body}</p></div></article>)}</div></section>
+      <section className="pallos-section pallos-shell how-section" id="how"><div className="section-head"><div><p className="pallos-label">PROCESS</p><h2>How it works</h2></div></div><div className="steps-list">{steps.map(([number, title, body]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div></section>
 
-      <section className="section how-section" id="how"><div className="shell"><div className="center-intro"><div className="eyebrow">HOW IT WORKS</div><h2>Connect. Understand. Fix.</h2><p>You do not need to understand every line of code to make a safer decision.</p></div><div className="workflow-grid">{steps.map(([number, title, body]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
+      <section className="pallos-section pallos-shell proof-section"><div className="section-head"><div><p className="pallos-label">EVIDENCE</p><h2>Proof, not promises.</h2></div><Link href="/proof">Open the Proof Lab <ArrowRight /></Link></div><div className="proof-rows"><article><span>Benchmarks</span><p>Benchmark data is being collected during the Pallos beta.</p></article><article><span>Case studies</span><p>Controlled public-repository scans document findings, fixes, and limits.</p></article><article><span>Tester feedback</span><p>Tester feedback is being collected during the Pallos beta.</p></article></div></section>
 
-      <section className="section shell demo-section" id="demo">
-        <div className="section-intro"><div className="eyebrow">EXAMPLE REPORT</div><h2>See exactly what a finding looks like.</h2><p>Choose an example to see the problem, the affected file, and the suggested next step.</p><Link className="ghost-button inline-button" href="https://pallosagent.com/login?mode=signup&next=/home">Open the full dashboard <ArrowRight /></Link></div>
-        <div className="demo-console"><div className="demo-sidebar"><div className="demo-sidebar-title"><span>Scan 0042</span><b>3 open</b></div>{demoFindings.map((finding, index) => <button key={finding.title} className={activeFinding === index ? "active" : ""} onClick={() => { setActiveFinding(index); setRescanState("idle"); }}><span>{finding.level}</span><strong>{finding.title}</strong><small>{finding.file}</small></button>)}</div><div className="demo-detail"><span className={`severity ${activeDemoFinding.level.toLowerCase()}`}>{activeDemoFinding.level}</span><h3>{activeDemoFinding.title}</h3><code>{activeDemoFinding.file}</code><div className="detail-block"><small>WHAT PALLOS SAW</small><p>{activeFinding === 0 ? "A server-only credential appears inside code that can be delivered to the browser." : activeFinding === 1 ? "A private operation is being called from a component that runs for every user." : "The route checks whether someone is signed in, but not whether they are an administrator."}</p></div><div className="detail-block"><small>NEXT STEP</small><p>{activeDemoFinding.note}</p></div>{rescanState !== "idle" && <div className={`rescan-status ${rescanState}`} role="status">{rescanState === "running" ? <><ArrowClockwise className="spin" />Checking the sample fix…</> : <><CheckCircle weight="fill" />Rescan complete. This finding still needs review.</>}</div>}<div className="demo-actions"><button onClick={() => setPromptOpen(true)}>Prepare fix prompt</button><button onClick={queueRescan} disabled={rescanState === "running"}>{rescanState === "running" ? "Rescanning…" : "Queue a rescan"}</button></div></div></div>
-      </section>
+      <section className="pallos-section pallos-shell ai-context"><div><p className="pallos-label">DEVELOPMENT CONTEXT</p><h2>Built for fast, AI-assisted development.</h2><p>AI coding tools make it easier to move quickly. They can also make it easier to overlook authorization logic, secret handling, database policies, and client/server boundaries.</p></div><div><ul>{tools.map((tool) => <li key={tool}>{tool}</li>)}</ul><small>Pallos is not affiliated with these products.</small></div></section>
 
-      <section className="section shell faq-section" id="faq"><div className="section-intro"><div className="eyebrow">QUESTIONS</div><h2>What to know before you connect a project.</h2></div><div className="faq-list">{faqs.map(([question, answer], index) => <details key={question}><summary aria-controls={`faq-answer-${index}`}>{question}<CaretDown aria-hidden="true" /></summary><p id={`faq-answer-${index}`}>{answer}</p></details>)}</div></section>
+      <section className="pallos-section pallos-shell trust-section"><div className="section-head"><div><p className="pallos-label">SECURITY AND PRIVACY</p><h2>How Pallos handles your code</h2></div><Link href="/security">Read the security page <ArrowRight /></Link></div><div className="trust-table">{trustRows.map(([label, value]) => <div key={label}><strong>{label}</strong><span>{value}</span></div>)}</div></section>
 
-      <section className="section waitlist-section" id="waitlist"><div className="shell waitlist-grid"><div className="waitlist-copy"><div className="eyebrow">PRIVATE BETA</div><h2>Help test Pallos.</h2><p>Test Pallos on safe projects for about two months. We will contact you occasionally—not constantly—to ask what felt useful, confusing, inaccurate, or missing.</p><ul className="tester-expectations"><li><Check weight="bold" />Run scans on public, staging, or disposable projects</li><li><Check weight="bold" />Send short feedback when something is unclear</li><li><Check weight="bold" />No payment or security expertise required</li></ul><a className="button tester-start" href="https://pallosagent.com/login?mode=signup&next=/connections">Create a tester account <ArrowRight weight="bold" /></a><div className="privacy-note"><Check weight="bold" />Never submit production secrets or customer data.</div></div><div className="form-card">{submitState === "success" ? <div className="success"><span><Check weight="bold" /></span><h3>You are on the tester list.</h3><p>{submitMessage}</p><button className="text-link" onClick={() => setSubmitState("idle")}>Add another person</button></div> : <form onSubmit={submitWaitlist}><div className="form-heading"><span>NOT READY TO CREATE AN ACCOUNT?</span><h3>Get tester updates</h3><p>Leave your details and we will send occasional testing updates.</p></div><label>Email address<input name="email" required type="email" autoComplete="email" placeholder="you@company.com" /></label><label>Main AI coding tool<select name="tool" required defaultValue="" onChange={(event) => setOtherTool(event.target.value === "Other")}><option value="" disabled>Select one</option><option>Lovable</option><option>Replit</option><option>Bolt</option><option>v0</option><option>Cursor</option><option>Claude Code</option><option>Codex</option><option>Other</option></select></label>{otherTool && <label className="conditional-field">What other AI coding platform do you use?<input name="otherTool" required placeholder="Enter the platform name" autoFocus /></label>}<label>What did you build?<textarea name="building" required placeholder="A short description is enough." /></label><label>Public or staging URL <span className="optional-label">Optional</span><input name="projectUrl" type="url" inputMode="url" placeholder="https://your-app.com" /></label><label className="honeypot" aria-hidden="true">Company name<input name="companyWebsite" tabIndex={-1} autoComplete="off" /></label><label className="consent"><input name="consent" value="yes" type="checkbox" required />I agree to receive occasional updates about Pallos testing.</label><button className="ghost-button full" disabled={submitState === "sending"}>{submitState === "sending" ? "Sending…" : "Get tester updates"}<ArrowRight weight="bold" /></button>{submitState === "error" && <p className="form-message error" role="alert">{submitMessage}</p>}</form>}</div></div></section>
+      <section className="pallos-section pallos-shell tester-section"><div className="tester-copy"><p className="pallos-label">PRIVATE BETA · FEEDBACK WELCOME</p><h2>Check your project before you ship.</h2><p>Pallos is currently in beta. Run a scan and help improve the product.</p><div className="pallos-actions"><Link className="pallos-button primary" href="/scan">Scan a project <ArrowRight /></Link><a className="pallos-button secondary" href="#free-scan">Try the demo</a></div></div><div className="tester-form-wrap">{submitState === "success" ? <div className="tester-success"><span>REQUEST RECEIVED</span><h3>You are on the tester list.</h3><p>{submitMessage}</p><button onClick={() => setSubmitState("idle")}>Add another person</button></div> : <form onSubmit={submitWaitlist}><h3>Get tester updates</h3><label>Email address<input name="email" required type="email" autoComplete="email" placeholder="you@company.com" /></label><label>Main AI coding tool<select name="tool" required defaultValue="" onChange={(event) => setOtherTool(event.target.value === "Other")}><option value="" disabled>Select one</option><option>Lovable</option><option>Replit</option><option>Bolt</option><option>v0</option><option>Cursor</option><option>Claude Code</option><option>Codex</option><option>Other</option></select></label>{otherTool && <label>Other tool<input name="otherTool" required /></label>}<label>What did you build?<textarea name="building" required rows={3} /></label><label>Public or staging URL <small>Optional</small><input name="projectUrl" type="url" inputMode="url" /></label><label className="honeypot" aria-hidden="true">Company name<input name="companyWebsite" tabIndex={-1} autoComplete="off" /></label><label className="tester-consent"><input name="consent" value="yes" type="checkbox" required /><span>I agree to receive occasional Pallos testing updates.</span></label><button className="pallos-button primary" disabled={submitState === "sending"}>{submitState === "sending" ? "Sending…" : "Get tester updates"}</button>{submitState === "error" && <p className="tester-error" role="alert">{submitMessage}</p>}</form>}</div></section>
     </div>
 
-    <footer className="footer" id="contact"><div className="shell footer-top"><div><Link className="brand" href="#top"><span className="brand-dot" />Pallos Agent</Link><p>Plain-English security checks for apps built with AI.</p></div><div className="footer-contact"><span>CONTACT</span><a href="mailto:pallosagent@gmail.com"><EnvelopeSimple />pallosagent@gmail.com</a><button type="button" onClick={() => navigator.clipboard.writeText("pallosagent")}><DiscordLogo />Discord: pallosagent</button></div><div className="social-directory">{socialAccounts.map(({ label, handle, href, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label}: ${handle}`}><Icon /><span><small>{label}</small>{handle}</span><ArrowRight /></a>)}</div></div><div className="shell footer-bottom"><span>© 2026 Pallos Agent</span><div><Link href="/tools">Free tools</Link><Link href="/methodology">How scanning works</Link><Link href="/security">Security</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div></div></footer>
+    <footer className="pallos-footer"><div className="pallos-shell"><div><Link className="pallos-brand" href="#top"><Image src="/pallos-icon.svg" alt="" width={22} height={22} />Pallos</Link><p>Security checks for AI-built apps.</p></div><nav><a href="#checks">Product</a><Link href="/methodology">Methodology</Link><Link href="/security">Security</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><a href="https://github.com/rjakkampudi11/pallos-app" target="_blank" rel="noreferrer">GitHub</a><a href="mailto:pallosagent@gmail.com">Contact</a></nav></div></footer>
 
-    {promptOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPromptOpen(false); }}><section className="prompt-modal" role="dialog" aria-modal="true" aria-labelledby="prompt-title"><button className="modal-close" aria-label="Close fix prompt" onClick={() => setPromptOpen(false)}><X /></button><div className="eyebrow">READY FOR YOUR AI TOOL</div><h2 id="prompt-title">Fix prompt prepared.</h2><p>Paste this into your coding assistant, review its proposed change, then return to Pallos for verification.</p><pre>{fixPrompt}</pre><div className="modal-actions"><button className="button" onClick={copyPrompt}>{promptCopied ? <><Check />Copied</> : <><Copy />Copy prompt</>}</button><button className="ghost-button" onClick={() => { setPromptOpen(false); queueRescan(); }}>Queue verification</button></div></section></div>}
+    {promptOpen && <div className="pallos-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setPromptOpen(false); }}><section className="pallos-modal" role="dialog" aria-modal="true" aria-labelledby="fix-prompt-title"><button className="modal-x" aria-label="Close" onClick={() => setPromptOpen(false)}><X /></button><p className="pallos-label">READY FOR YOUR CODING TOOL</p><h2 id="fix-prompt-title">Fix prompt prepared.</h2><p>Review the proposed change before applying it, then rescan.</p><pre>{fixPrompt}</pre><div className="pallos-actions"><button className="pallos-button primary" onClick={copyPrompt}>{promptCopied ? <><Check />Copied</> : <><Copy />Copy prompt</>}</button><button className="pallos-button secondary" onClick={() => { setPromptOpen(false); queueRescan(); }}>Queue verification</button></div></section></div>}
   </main>;
 }

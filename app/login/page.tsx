@@ -55,8 +55,8 @@ function LoginContent() {
 
   return <main className="login-page">
     <section className="login-story">
-      <Link className="agent-brand" href="https://pallosagent.info"><span className="agent-brand-dot" />Pallos Agent</Link>
-      <div><span className="eyebrow">SECURE WORKSPACE</span><h1>A second set of eyes for everything your AI just built.</h1><p>Your repositories, scans, monitors, findings, and incidents stay tied to your Pallos account.</p></div>
+      <Link className="agent-brand" href="https://pallosagent.com"><span className="agent-brand-dot" />Pallos</Link>
+      <div><span className="eyebrow">SECURE WORKSPACE</span><h1>Review security-sensitive code before launch.</h1><p>Your repositories, scans, monitors, findings, and incidents stay tied to your Pallos account.</p></div>
       <div className="login-steps"><div><span>01</span><strong>Connect</strong><p>Choose a GitHub repository with read-only access or add a JSON endpoint.</p></div><div><span>02</span><strong>Scan</strong><p>Review focused findings with redacted evidence and plain-English context.</p></div><div><span>03</span><strong>Verify</strong><p>Fix the issue, scan again, and confirm what changed.</p></div></div>
     </section>
     <section className="login-panel">
@@ -74,7 +74,7 @@ function LoginContent() {
           {error && <p className="auth-error" role="alert">{error}</p>}
           <button className="run-button" disabled={submitting}>{submitting ? "Please wait…" : mode === "login" ? <><SignIn />Log in <ArrowRight /></> : <><UserPlus />Create account <ArrowRight /></>}</button>
         </form>
-        <div className="login-help"><span><Check /> Verified email · server session</span><div><Link href="https://pallosagent.info/security">Security</Link><Link href="https://pallosagent.info">About Pallos</Link></div></div>
+        <div className="login-help"><span><Check /> Verified email · server session</span><div><Link href="https://pallosagent.com/security">Security</Link><Link href="https://pallosagent.com">About Pallos</Link></div></div>
         </>}
       </div>
     </section>

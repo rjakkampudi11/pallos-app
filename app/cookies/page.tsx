@@ -1,6 +1,6 @@
 import { LegalShell } from "../components/legal-shell";
 
-export const metadata = { title: "Cookie Policy | Pallos Agent", description: "How Pallos uses necessary, analytics, and advertising cookies.", alternates: { canonical: "/cookies" } };
+export const metadata = { title: "Cookie Policy | Pallos", description: "How Pallos uses necessary, analytics, and advertising cookies.", alternates: { canonical: "/cookies" } };
 
 export default function CookiesPage() { return <LegalShell eyebrow="LEGAL" title="Cookie Policy" lead="You control analytics and advertising technologies. Necessary storage stays on so Pallos can work securely.">
   <section><h2>What cookies are</h2><p>Cookies and similar browser storage remember information about a visit. Some are required for a requested service; others measure usage or advertising only after consent.</p></section>

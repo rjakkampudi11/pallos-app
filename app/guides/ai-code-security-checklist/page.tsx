@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalShell } from "../../components/legal-shell";
 
-export const metadata = { title: "AI Code Security Checklist Before Launch | Pallos Agent", description: "A practical security checklist for apps built with Cursor, Lovable, Replit, Bolt, v0, Claude Code, or Codex.", alternates: { canonical: "/guides/ai-code-security-checklist" } };
+export const metadata = { title: "AI Code Security Checklist Before Launch | Pallos", description: "A practical security checklist for apps built with Cursor, Lovable, Replit, Bolt, v0, Claude Code, or Codex.", alternates: { canonical: "/guides/ai-code-security-checklist" } };
 
 const checklist = [
   ["Remove exposed secrets", "Search browser-delivered code, commits, logs, and screenshots for API keys, service-role keys, database URLs with credentials, and access tokens. Rotate a secret if it was ever public—deleting it is not enough."],

@@ -61,7 +61,7 @@ export function FreeApiScan() {
     const shareData = {
       title: "Free Pallos API scan",
       text: "Check whether a public JSON API is reachable and baseline-ready with Pallos.",
-      url: "https://pallosagent.info/#free-scan",
+      url: "https://pallosagent.com/#free-scan",
     };
     try {
       if (navigator.share) await navigator.share(shareData);
@@ -85,7 +85,7 @@ export function FreeApiScan() {
           <div className="scan-form-heading"><BracketsCurly /><div><span>NO ACCOUNT NEEDED</span><h3>Try the safe demo first</h3></div></div>
           <label htmlFor="free-scan-url">Public API address</label>
           <div className="free-scan-input-row"><input id="free-scan-url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://your-app.com/api/status" autoComplete="url" /><button className="button" disabled={state === "scanning"}>{state === "scanning" ? <ArrowClockwise className="spin" /> : <ArrowRight weight="bold" />}{state === "scanning" ? "Checking…" : "Run free scan"}</button></div>
-          <button className="sample-api-button" type="button" onClick={() => setUrl(`${window.location.protocol === "https:" ? window.location.origin : "https://pallosagent.info"}/api/training/profile`)}>Fill in the safe demo for me</button>
+          <button className="sample-api-button" type="button" onClick={() => setUrl(`${window.location.protocol === "https:" ? window.location.origin : "https://pallosagent.com"}/api/training/profile`)}>Fill in the safe demo for me</button>
           <div className="scan-boundaries"><span><Check />Safe demo is reusable</span><span><Check />Public addresses only</span><span><Check />Values stay hidden</span></div>
           {state === "error" && <div className="free-scan-error" role="alert"><WarningCircle /><span>{message}{scanUsed && <Link href="https://pallosagent.com/login?mode=signup&next=/monitor">Create a free account to continue <ArrowRight /></Link>}</span></div>}
         </form>}

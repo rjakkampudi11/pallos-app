@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     stage: clean(input.stage, 80),
     building: projectUrl ? `${building}\nProject URL: ${projectUrl}` : building,
     consent: clean(input.consent, 10),
-    source: "pallosagent.info",
+    source: "pallosagent.com",
   };
 
   if (!emailPattern.test(payload.email) || !payload.tool || (selectedTool === "Other" && !otherTool) || !building || payload.consent !== "yes") {

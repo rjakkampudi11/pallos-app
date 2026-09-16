@@ -88,7 +88,7 @@ export function PublicRepositoryScanner({ initialRepositoryUrl = "" }: { initial
   const untestedChecks = result?.assessment.checks.filter((check) => check.status === "not_tested") || [];
 
   return <main className="public-repo-page">
-    <header className="repo-scan-header"><nav><Link href="/" className="repo-scan-brand"><span />Pallos Agent</Link><div><Link href="/tools">Free tools</Link><Link href="/proof">Proof Lab</Link><Link href="/login?mode=signup&next=/connections" className="repo-scan-private">Connect a private repo</Link></div></nav></header>
+    <header className="repo-scan-header"><nav><Link href="/" className="repo-scan-brand"><span />Pallos</Link><div><Link href="/tools">Free tools</Link><Link href="/proof">Proof Lab</Link><Link href="/login?mode=signup&next=/connections" className="repo-scan-private">Connect a private repo</Link></div></nav></header>
     <section className="repo-scan-hero">
       <div className="repo-scan-kicker"><ShieldCheck weight="fill" />FREE PUBLIC REPOSITORY SCAN</div>
       <h1>Paste the repo.<br />Get the risks and fixes.</h1>

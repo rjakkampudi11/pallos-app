@@ -1,29 +1,28 @@
-# Pallos Agent design QA
+# Pallos redesign QA
 
-## Source and scope
+## Visual truth
 
-- Source: user-supplied Google Doc tabs `.com errors` and `.info errors`, including screenshots.
-- Products: `pallosagent.com` sandbox workspace and `pallosagent.info` outreach site.
-- Brand direction: premium and spacious, current navy/cyan palette, clear language for people building with AI, no firewall framing.
+- Selected design: `/Users/rohanj/.codex/generated_images/01a05465-eb7e-7430-8253-f0d5ba84a972/exec-981f4c7d-c1ff-4593-8f77-9b45c53abfb8.png`
+- Rendered desktop capture: `/Users/rohanj/.codex/visualizations/2026/08/30/01a05465-eb7e-7430-8253-f0d5ba84a972/pallos-redesign-qa/desktop.png`
+- Side-by-side comparison: `/Users/rohanj/.codex/visualizations/2026/08/30/01a05465-eb7e-7430-8253-f0d5ba84a972/pallos-redesign-qa/comparison.png`
+- Desktop comparison viewport: 1488 × 1059
 
-## Repairs verified
+## Pass 1
 
-- `.info`: sticky top navigation, readable typography, extended landing content, legal pages, exact contact identities, direct social links, caret FAQ controls, conditional Other-tool field, new-tab workspace link, modal fix prompts, and inline rescan status.
-- `.com`: first-run guidance, distinct URL paths, workspace/profile/notification menus, mobile sidebar, demo scan workflow, finding filters, fix-prompt modal, run details, CSV export, settings, contact view, and blank-field sandbox login.
-- `.com` settings: separate General, Appearance, Account, and Connectors sections; device-local theme, accent, density, and reduced-motion preferences; sandbox login-detail and session controls; connector status and setup actions.
-- `.com` API monitor: real endpoint baseline capture, manual checks, response-contract diffs, stored check history, serious incident creation, Supabase setup state, and responsive monitoring workspace.
-- SEO: canonical metadata, Open Graph/Twitter image, SoftwareApplication and FAQ structured data, sitemap, robots policy, apex redirects, and noindex protection for the sandbox.
+The first implementation matched the selected black-and-white layout, typography, navigation, split hero, finding surface, and coverage table. The hero finding lacked the concrete code-evidence block visible in the selected design, which made the product visual feel less complete.
 
-## QA matrix
+Fix: added a compact JetBrains Mono code-evidence block with a restrained muted-red risk line, then rebuilt and recaptured the page.
 
-- Desktop: outreach hero and sandbox home visually inspected on production.
-- Mobile: sandbox home and navigation inspected at 390 x 844.
-- Interaction checks: FAQ, Other-tool reveal, prepare prompt, rescan, workspace menu, notifications, demo scan routing, finding prompt, and login.
-- Automated checks: ESLint clean; production Next.js build clean.
-- Production checks: both apex domains return expected pages; `www` redirects; legal pages, sitemap, robots, canonicals, social image, and `.com` noindex headers verified.
+## Final pass
 
-## Current prototype boundaries
+- **Typography:** Inter and JetBrains Mono match the intended product/editorial hierarchy. Hero, section, body, labels, and code remain within the requested scale.
+- **Layout and spacing:** 1180px grid, compact 64px navigation, split hero, technical table, thin dividers, and restrained radii match the selected direction.
+- **Colors:** black, near-black, white, and neutral gray dominate. No visible blue, cyan, purple, gradient, glow, or glass treatment remains on the redesigned public surfaces. Severity color is small and functional.
+- **Product fidelity:** hero and report sections use real finding structure, filenames, line numbers, evidence, impact, and remediation rather than abstract product art.
+- **States and interactions:** finding selection, fix-prompt modal, copy action, rescan state, waitlist form, mobile navigation, cookie preferences, and scanner routes remain implemented.
+- **Accessibility:** semantic headings and controls, skip navigation, labels, keyboard-focus styles, reduced-motion-safe transitions, readable contrast, and responsive stacking are present.
+- **Supporting routes:** scanner, tools, methodology, proof, security, login, legal, and demo report routes were checked for the black-and-white system and readable headings.
 
-- Workspace findings and scans intentionally use illustrative data.
-- The login accepts blank fields intentionally for sandbox testing.
-- Waitlist delivery requires the configured Google Apps Script URL and shared secret in Vercel environment variables.
+## Open findings
+
+No P0, P1, or P2 issues remain after the final comparison pass.

@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
   const tool = getSecurityTool(slug);
   if (!tool) return {};
   return {
-    title: `${tool.eyebrow.replace("FREE ", "")} | Pallos Agent`,
+    title: `${tool.eyebrow.replace("FREE ", "")} | Pallos`,
     description: tool.description,
     alternates: { canonical: `/tools/${tool.slug}` },
     openGraph: { title: tool.title, description: tool.description, url: `https://pallosagent.com/tools/${tool.slug}` },
@@ -32,7 +32,7 @@ export default async function SecurityToolPage({ params }: ToolPageProps) {
 
   return <main className="tool-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqData) }} />
-    <header className="tool-nav"><nav><Link href="/" className="tool-brand"><span />Pallos Agent</Link><div><Link href="/tools">All tools</Link><Link href="/proof">Proof Lab</Link><Link href="/scan" className="tool-nav-cta">Scan a repository</Link></div></nav></header>
+    <header className="tool-nav"><nav><Link href="/" className="tool-brand"><span />Pallos</Link><div><Link href="/tools">All tools</Link><Link href="/proof">Proof Lab</Link><Link href="/scan" className="tool-nav-cta">Scan a repository</Link></div></nav></header>
     <section className="tool-hero">
       <div className="tool-kicker"><ShieldCheck weight="fill" />{tool.eyebrow}</div>
       <h1>{tool.title}</h1><p>{tool.lead}</p>

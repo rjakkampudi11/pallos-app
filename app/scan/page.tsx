@@ -3,7 +3,7 @@ import { PublicRepositoryScanner } from "./public-repository-scanner";
 import "./scan.css";
 
 export const metadata: Metadata = {
-  title: "Free Public GitHub Security Scan | Pallos Agent",
+  title: "Free Public GitHub Security Scan | Pallos",
   description: "Paste a public GitHub repository URL and get a plain-English Pallos security scan with evidence and fix directions. No account required.",
   alternates: { canonical: "/scan" },
 };

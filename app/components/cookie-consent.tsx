@@ -33,11 +33,16 @@ export function CookieConsent() {
   const [customizing, setCustomizing] = useState(false);
 
   useEffect(() => {
-    setConsent(readConsent());
-    setReady(true);
+    const hydrate = window.setTimeout(() => {
+      setConsent(readConsent());
+      setReady(true);
+    }, 0);
     const open = () => setCustomizing(true);
     window.addEventListener("pallos-open-cookie-settings", open);
-    return () => window.removeEventListener("pallos-open-cookie-settings", open);
+    return () => {
+      window.clearTimeout(hydrate);
+      window.removeEventListener("pallos-open-cookie-settings", open);
+    };
   }, []);
 
   function choose(value: Consent) {

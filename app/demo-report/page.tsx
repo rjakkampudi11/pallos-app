@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BracketsCurly, CheckCircle, Flask, Info, LockKey, Warning } from "@phosphor-icons/react/dist/ssr";
 
 const trainingUrl = "https://pallosagent.com/api/training/profile";
-const tryUrl = `https://pallosagent.info/?scanUrl=${encodeURIComponent(trainingUrl)}#free-scan`;
+const tryUrl = `https://pallosagent.com/?scanUrl=${encodeURIComponent(trainingUrl)}#free-scan`;
 const changes = [
   { kind: "Type changed", path: "$.user_id", detail: "string → number", serious: true },
   { kind: "Type changed", path: "$.plan_name", detail: "string → object", serious: true },
@@ -15,7 +15,7 @@ const changes = [
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pallosagent.com"),
-  title: "Simulated API Change Report | Pallos Agent",
+  title: "Simulated API Change Report | Pallos",
   description: "A read-only Pallos demonstration of HTTP monitoring, missing fields, new fields, and JSON type changes.",
   alternates: { canonical: "/demo-report" },
   robots: { index: false, follow: false },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function DemoReportPage() {
   return <main className="public-report-page">
-    <header className="public-report-nav"><Link href="https://pallosagent.info" className="public-report-brand"><span />Pallos Agent</Link><Link href={tryUrl} className="public-report-nav-cta">Try the safe demo <ArrowRight weight="bold" /></Link></header>
+    <header className="public-report-nav"><Link href="https://pallosagent.com" className="public-report-brand"><span />Pallos</Link><Link href={tryUrl} className="public-report-nav-cta">Try the safe demo <ArrowRight weight="bold" /></Link></header>
     <section className="public-report-hero">
       <div className="public-report-simulated"><Flask weight="fill" />SIMULATED DEMO — NOT A REAL CUSTOMER INCIDENT</div>
       <p className="public-report-kicker">PUBLIC · READ-ONLY REPORT</p><h1>See exactly what changed in an API response.</h1>
@@ -44,6 +44,6 @@ export default function DemoReportPage() {
       <article className="public-report-explainer"><Info weight="fill" /><div><span>WHAT THIS PROVES</span><h2>Pallos can compare two JSON response shapes and explain the difference.</h2><p>It does not prove that an API is secure or that every business rule works. It gives builders an early warning when availability or response structure changes.</p></div></article>
       <section className="public-report-final-cta"><span>TRY IT WITHOUT SHARING PRIVATE DATA</span><h2>Run the safe demo, or replace the URL with your own public staging endpoint.</h2><p>The training URL will already be filled in. Pallos’s free scan displays status and structure without showing response values.</p><Link href={tryUrl} className="public-report-primary">Open the free scanner <ArrowRight weight="bold" /></Link></section>
     </section>
-    <footer className="public-report-footer"><span>© 2026 Pallos Agent</span><a href="mailto:pallosagent@gmail.com">pallosagent@gmail.com</a></footer>
+    <footer className="public-report-footer"><span>© 2026 Pallos</span><a href="mailto:pallosagent@gmail.com">pallosagent@gmail.com</a></footer>
   </main>;
 }

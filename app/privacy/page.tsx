@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalShell } from "../components/legal-shell";
 
-export const metadata = { title: "Privacy Policy | Pallos Agent", description: "How Pallos Agent collects, uses, and protects personal information.", alternates: { canonical: "/privacy" } };
+export const metadata = { title: "Privacy Policy | Pallos", description: "How Pallos collects, uses, and protects personal information.", alternates: { canonical: "/privacy" } };
 
 export default function PrivacyPage() { return <LegalShell eyebrow="LEGAL" title="Privacy Policy" lead="What Pallos collects, why we use it, and the choices available to you.">
   <section><h2>Information we collect</h2><p>We may collect account and contact details; repository, scan, monitoring, and security records you choose to provide; details needed for paid work; payment status; support messages; and technical data such as browser, device, IP address, logs, and referring pages.</p><p>When you consent, Google Analytics and advertising technologies may collect usage, campaign, interaction, and device information. Never send passwords, private keys, payment-card details, or customer data by ordinary email.</p></section>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, GithubLogo, ShieldCheck, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
-  title: "Proof Lab | Pallos Agent",
+  title: "Proof Lab | Pallos",
   description: "Reproducible Pallos static-code scans on intentionally vulnerable public training repositories.",
 };
 
@@ -61,7 +61,7 @@ const cases: Case[] = [
 
 export default function ProofLabPage() {
   return <main className="proof-page">
-    <header className="proof-header"><nav className="proof-nav"><Link href="/" className="proof-brand"><span />Pallos Agent</Link><Link href="/login?mode=signup&next=/connections" className="proof-nav-cta">Scan your repo <ArrowRight weight="bold" /></Link></nav></header>
+    <header className="proof-header"><nav className="proof-nav"><Link href="/" className="proof-brand"><span />Pallos</Link><Link href="/login?mode=signup&next=/connections" className="proof-nav-cta">Scan your repo <ArrowRight weight="bold" /></Link></nav></header>
     <section className="proof-hero">
       <p className="proof-eyebrow"><ShieldCheck weight="fill" />Pallos Proof Lab</p>
       <h1>Real detections. Public source. Clear limits.</h1>
