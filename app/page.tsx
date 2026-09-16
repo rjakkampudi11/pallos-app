@@ -116,7 +116,7 @@ export default function Home() {
       <nav className="nav shell" aria-label="Main navigation">
         <Link className="brand" href="#top"><span className="brand-dot" />Pallos Agent</Link>
         <div className={`navlinks ${menuOpen ? "open" : ""}`}>
-          <a href="#checks" onClick={() => setMenuOpen(false)}>What it checks</a><a href="#how" onClick={() => setMenuOpen(false)}>How it works</a><Link href="/proof" onClick={() => setMenuOpen(false)}>Proof Lab</Link><a href="#free-scan" onClick={() => setMenuOpen(false)}>Try it</a><a href="#faq" onClick={() => setMenuOpen(false)}>Questions</a><a className="mobile-nav-cta" href="https://pallosagent.com/login?mode=signup&next=/connections" onClick={() => setMenuOpen(false)}>Start testing</a>
+          <a href="#checks" onClick={() => setMenuOpen(false)}>What it checks</a><a href="#how" onClick={() => setMenuOpen(false)}>How it works</a><Link href="/proof" onClick={() => setMenuOpen(false)}>Proof Lab</Link><Link href="/scan" onClick={() => setMenuOpen(false)}>Free repo scan</Link><a href="#faq" onClick={() => setMenuOpen(false)}>Questions</a><a className="mobile-nav-cta" href="https://pallosagent.com/login?mode=signup&next=/connections" onClick={() => setMenuOpen(false)}>Start testing</a>
         </div>
         <a className="button small nav-cta" href="https://pallosagent.com/login?mode=signup&next=/connections">Start testing <ArrowRight weight="bold" /></a>
         <button className="menu-button" aria-expanded={menuOpen} aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <List />}</button>
@@ -129,7 +129,7 @@ export default function Home() {
           <div className="eyebrow"><span className="pulse" />AI CODE SECURITY SCANNER FOR GITHUB</div>
           <h1>Find risky code before your users do.</h1>
           <p className="hero-copy">Pallos reads your project and points out security mistakes in plain English. You see what is wrong, where it is, how serious it is, and practical ways to fix it.</p>
-          <div className="hero-actions"><a className="button" href="#free-scan">Try the safe demo <ArrowRight weight="bold" /></a><Link className="ghost-button" href="/proof">See real demo scans</Link><a className="ghost-button" href="https://pallosagent.com/login?mode=signup&next=/connections">Scan a GitHub project</a></div>
+          <div className="hero-actions"><Link className="button" href="/scan">Scan a public repo <ArrowRight weight="bold" /></Link><Link className="ghost-button" href="/proof">See real demo scans</Link><a className="ghost-button" href="https://pallosagent.com/login?mode=signup&next=/connections">Connect a private repo</a></div>
           <div className="hero-proof"><span><Check weight="bold" />Read-only access</span><span><Check weight="bold" />Plain-English results</span><span><Check weight="bold" />You control every fix</span></div>
         </div>
         <div className="product-window reveal delay-1" aria-label="Pallos scan preview">
