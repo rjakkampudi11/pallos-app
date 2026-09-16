@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: "https://pallosagent.com/", lastModified, changeFrequency: "weekly", priority: 1 },
     { url: "https://pallosagent.com/security", lastModified, changeFrequency: "monthly", priority: 0.6 },
     { url: "https://pallosagent.com/methodology", lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: "https://pallosagent.com/proof", lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: "https://pallosagent.com/privacy", lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: "https://pallosagent.com/terms", lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: "https://pallosagent.com/cookies", lastModified, changeFrequency: "monthly", priority: 0.3 },
