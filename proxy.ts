@@ -16,15 +16,22 @@ export function proxy(request: NextRequest) {
   if (host === "pallosagent.com" || isVercelDeployment || host === "localhost" || host === "127.0.0.1") {
     const path = request.nextUrl.pathname;
     const hasSession = Boolean(request.cookies.get("pallos-access-token")?.value || request.cookies.get("pallos-refresh-token")?.value);
-    if ((host === "localhost" || host === "127.0.0.1") && path === "/") {
+    // The public homepage must always stay public, even when a session exists.
+    if (path === "/") {
       return NextResponse.next();
+    }
+    if (path === "/monitor") {
+      const url = request.nextUrl.clone();
+      url.pathname = hasSession ? "/projects" : "/login";
+      if (!hasSession) url.searchParams.set("next", "/projects");
+      return NextResponse.redirect(url);
     }
     if (path === "/app" || path === "/agent") {
       const url = request.nextUrl.clone();
       url.pathname = hasSession ? "/home" : "/login";
       return NextResponse.redirect(url);
     }
-    const workspaceRoutes = ["/home", "/monitor", "/findings", "/projects", "/agent-runs", "/connections", "/insights", "/activity", "/settings", "/contact"];
+    const workspaceRoutes = ["/home", "/findings", "/projects", "/agent-runs", "/connections", "/insights", "/activity", "/settings", "/contact"];
     if (workspaceRoutes.includes(path)) {
       if (!hasSession) {
         const loginUrl = request.nextUrl.clone();
@@ -38,9 +45,12 @@ export function proxy(request: NextRequest) {
       response.headers.set("X-Robots-Tag", "noindex, nofollow");
       return response;
     }
-    const response = NextResponse.next();
-    response.headers.set("X-Robots-Tag", "noindex, nofollow");
-    return response;
+    if (path === "/login" || path.startsWith("/auth/") || path.startsWith("/internal/")) {
+      const response = NextResponse.next();
+      response.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return response;
+    }
+    return NextResponse.next();
   }
   return NextResponse.next();
 }
