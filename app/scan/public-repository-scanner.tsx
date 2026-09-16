@@ -13,13 +13,14 @@ function track(name: string, parameters: Record<string, string | number | boolea
   analytics?.("event", name, parameters);
 }
 
-export function PublicRepositoryScanner() {
-  const [repositoryUrl, setRepositoryUrl] = useState("");
+export function PublicRepositoryScanner({ initialRepositoryUrl = "" }: { initialRepositoryUrl?: string }) {
+  const [repositoryUrl, setRepositoryUrl] = useState(initialRepositoryUrl);
   const [state, setState] = useState<"idle" | "scanning" | "done" | "error">("idle");
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedShare, setCopiedShare] = useState<"link" | "badge" | null>(null);
   const [feedbackState, setFeedbackState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [feedbackError, setFeedbackError] = useState("");
 
@@ -54,6 +55,25 @@ export function PublicRepositoryScanner() {
     setCopied(true); window.setTimeout(() => setCopied(false), 1800);
   }
 
+  async function copyScanLink() {
+    if (!result) return;
+    const link = `https://pallosagent.com/scan?repo=${encodeURIComponent(result.repositoryUrl)}`;
+    await navigator.clipboard.writeText(link);
+    setCopiedShare("link");
+    track("public_repo_scan_link_copied");
+    window.setTimeout(() => setCopiedShare(null), 1800);
+  }
+
+  async function copyReadmeBadge() {
+    if (!result) return;
+    const link = `https://pallosagent.com/scan?repo=${encodeURIComponent(result.repositoryUrl)}`;
+    const markdown = `[![Scan with Pallos](https://pallosagent.com/pallos-scan-badge.svg)](${link})`;
+    await navigator.clipboard.writeText(markdown);
+    setCopiedShare("badge");
+    track("public_repo_readme_badge_copied");
+    window.setTimeout(() => setCopiedShare(null), 1800);
+  }
+
   async function sendFeedback(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setFeedbackState("sending"); setFeedbackError("");
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -68,7 +88,7 @@ export function PublicRepositoryScanner() {
   const untestedChecks = result?.assessment.checks.filter((check) => check.status === "not_tested") || [];
 
   return <main className="public-repo-page">
-    <header className="repo-scan-header"><nav><Link href="/" className="repo-scan-brand"><span />Pallos Agent</Link><div><Link href="/proof">Proof Lab</Link><Link href="/login?mode=signup&next=/connections" className="repo-scan-private">Connect a private repo</Link></div></nav></header>
+    <header className="repo-scan-header"><nav><Link href="/" className="repo-scan-brand"><span />Pallos Agent</Link><div><Link href="/tools">Free tools</Link><Link href="/proof">Proof Lab</Link><Link href="/login?mode=signup&next=/connections" className="repo-scan-private">Connect a private repo</Link></div></nav></header>
     <section className="repo-scan-hero">
       <div className="repo-scan-kicker"><ShieldCheck weight="fill" />FREE PUBLIC REPOSITORY SCAN</div>
       <h1>Paste the repo.<br />Get the risks and fixes.</h1>
@@ -97,6 +117,8 @@ export function PublicRepositoryScanner() {
 
       <div className="repo-untested"><div><span>WHAT PALLOS DID NOT PROVE</span><h2>Untested areas stay visible.</h2><p>A high score never converts missing evidence into a pass.</p></div><ul>{untestedChecks.map((check) => <li key={check.id}><b>{check.title}</b><span>{check.evidence || check.explanation}</span></li>)}</ul></div>
       <div className="repo-report-actions"><button onClick={() => void runScan()}><ArrowClockwise />Rescan latest commit</button><Link href="/login?mode=signup&next=/connections" onClick={() => track("public_repo_connect_clicked")}>Connect for deeper scans <ArrowRight /></Link></div>
+
+      <div className="repo-share-kit"><div><span>MAKE THE NEXT SCAN EASIER</span><h2>Share this repository&apos;s scan entry point.</h2><p>The link prefills the repository but never publishes this report. The README badge sends visitors to the same read-only scanner.</p></div><div><button onClick={copyScanLink}><Copy />{copiedShare === "link" ? "Link copied" : "Copy scan link"}</button><button onClick={copyReadmeBadge}><Copy />{copiedShare === "badge" ? "Badge copied" : "Copy README badge"}</button></div></div>
 
       <form className="repo-feedback" onSubmit={sendFeedback}>
         <div><span>TWO QUICK QUESTIONS</span><h2>Did this report help?</h2><p>Your answer improves the next Pallos build.</p></div>

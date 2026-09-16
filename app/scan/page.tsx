@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/scan" },
 };
 
-export default function PublicScanPage() {
-  return <PublicRepositoryScanner />;
+type PublicScanPageProps = { searchParams: Promise<{ repo?: string | string[] }> };
+
+export default async function PublicScanPage({ searchParams }: PublicScanPageProps) {
+  const { repo } = await searchParams;
+  return <PublicRepositoryScanner initialRepositoryUrl={Array.isArray(repo) ? repo[0] || "" : repo || ""} />;
 }
