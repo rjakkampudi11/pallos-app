@@ -11,6 +11,15 @@ test("detects and redacts a committed API key", () => {
   assert.equal(findings[0].evidence.includes(value), false);
 });
 
+test("downgrades unmistakably fake credential placeholders to review", () => {
+  const value = `sk_test_FAKE${"x".repeat(20)}`;
+  const findings = scanRepositoryFiles([{ path: "tests/fixtures/billing.ts", content: `const key = "${value}";` }]);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, "review");
+  assert.match(findings[0].title, /placeholder needs review/);
+  assert.equal(findings[0].evidence.includes(value), false);
+});
+
 test("detects privileged Supabase key usage in a client module", () => {
   const findings = scanRepositoryFiles([{ path: "app/settings/page.tsx", content: `'use client';\nconst key = process.env.SUPABASE_SERVICE_ROLE_KEY;` }]);
   assert.equal(findings.some((finding) => finding.rule_id === "supabase-service-role-client"), true);

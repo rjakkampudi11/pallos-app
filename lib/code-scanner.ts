@@ -52,6 +52,10 @@ function isTestFile(path: string) {
   return /(?:^|\/)(?:tests?|__tests__|fixtures?|examples?)(?:\/|$)|\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(path);
 }
 
+function isObviousPlaceholder(value: string) {
+  return /(?:fake|demo|dummy|example|placeholder|replace[_-]?me|not[_-]?real)/i.test(value);
+}
+
 function isDetectionRuleFile(file: ScanFile) {
   return /(?:scanner|detector|rules?)[^/]*\.[cm]?[jt]sx?$/i.test(file.path)
     && /rule_id|scanRepositoryFiles|CodeFinding/.test(file.content);
@@ -65,16 +69,17 @@ export function scanRepositoryFiles(files: ScanFile[]) {
       let match: RegExpExecArray | null;
       while ((match = rule.pattern.exec(file.content)) !== null) {
         const line = lineFor(file.content, match.index);
+        const placeholder = isObviousPlaceholder(match[0]);
         addFinding(findings, {
           rule_id: rule.id,
-          title: `${rule.name} appears in source code`,
-          severity: "critical",
+          title: placeholder ? `${rule.name} placeholder needs review` : `${rule.name} appears in source code`,
+          severity: placeholder ? "review" : "critical",
           category: "Secrets",
           file_path: file.path,
           line_number: line,
           evidence: `A value matching ${rule.name.toLowerCase()} was detected on line ${line}. The value was redacted and was not saved.`,
-          explanation: "A committed credential can be copied from repository history and used outside your application.",
-          suggested_fix: "Revoke and rotate the credential, move the replacement into server-only environment storage, and remove it from repository history.",
+          explanation: placeholder ? "This value looks deliberately synthetic, but credential-shaped examples can create false alarms and may later be replaced with a real secret." : "A committed credential can be copied from repository history and used outside your application.",
+          suggested_fix: placeholder ? "Replace the credential-shaped example with an unmistakable non-secret marker and keep real values in server-only environment storage." : "Revoke and rotate the credential, move the replacement into server-only environment storage, and remove it from repository history.",
           source_hash: sourceHash(file),
         });
       }
