@@ -8,6 +8,11 @@ type Finding = { ruleId: string; title: string; severity: "critical" | "high" | 
 type Check = { id: string; title: string; status: "passed" | "failed" | "not_tested"; severity: "low" | "medium" | "high" | "critical" | null; explanation: string; remediation: string | null; evidence: string | null };
 type ScanResult = { repository: string; repositoryUrl: string; branch: string; commitSha: string; filesScanned: number; eligibleFiles: number; bytesScanned: number; partial: boolean; scanReference: string; findingsCount: number; findingsTruncated: boolean; findingCounts: { confirmed: number; review: number }; findings: Finding[]; assessment: { score: number; grade: string; summary: string; coverage: number; checks: Check[] } };
 
+function track(name: string, parameters: Record<string, string | number | boolean> = {}) {
+  const analytics = (window as unknown as { gtag?: (command: "event", eventName: string, values: Record<string, string | number | boolean>) => void }).gtag;
+  analytics?.("event", name, parameters);
+}
+
 export function PublicRepositoryScanner() {
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [state, setState] = useState<"idle" | "scanning" | "done" | "error">("idle");
@@ -28,13 +33,17 @@ export function PublicRepositoryScanner() {
   async function runScan(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setState("scanning"); setError(""); setShowAll(false); setFeedbackState("idle"); setFeedbackError("");
+    const startedAt = performance.now();
+    track("public_repo_scan_started");
     try {
       const response = await fetch("/api/public-repository-scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repositoryUrl }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "The repository scan failed.");
       setResult(data); setState("done");
+      track("public_repo_scan_completed", { score: data.assessment.score, grade: data.assessment.grade, findings: data.findingsCount, files_scanned: data.filesScanned, partial: data.partial, duration_ms: Math.round(performance.now() - startedAt) });
     } catch (scanError) {
       setResult(null); setState("error"); setError(scanError instanceof Error ? scanError.message : "The repository scan failed.");
+      track("public_repo_scan_failed");
     }
   }
 
@@ -52,6 +61,7 @@ export function PublicRepositoryScanner() {
     const data = await response.json();
     if (!response.ok) { setFeedbackState("error"); setFeedbackError(data.error || "Feedback could not be sent."); return; }
     setFeedbackState("sent");
+    track("public_repo_feedback_submitted", { useful: String(values.useful || "") });
   }
 
   const visibleFindings = result ? (showAll ? result.findings : result.findings.slice(0, 5)) : [];
@@ -86,7 +96,7 @@ export function PublicRepositoryScanner() {
       {result.findingsTruncated && <p className="repo-finding-cap">Showing the first 100 signals. Connect the repository for a complete saved report.</p>}
 
       <div className="repo-untested"><div><span>WHAT PALLOS DID NOT PROVE</span><h2>Untested areas stay visible.</h2><p>A high score never converts missing evidence into a pass.</p></div><ul>{untestedChecks.map((check) => <li key={check.id}><b>{check.title}</b><span>{check.evidence || check.explanation}</span></li>)}</ul></div>
-      <div className="repo-report-actions"><button onClick={() => void runScan()}><ArrowClockwise />Rescan latest commit</button><Link href="/login?mode=signup&next=/connections">Connect for deeper scans <ArrowRight /></Link></div>
+      <div className="repo-report-actions"><button onClick={() => void runScan()}><ArrowClockwise />Rescan latest commit</button><Link href="/login?mode=signup&next=/connections" onClick={() => track("public_repo_connect_clicked")}>Connect for deeper scans <ArrowRight /></Link></div>
 
       <form className="repo-feedback" onSubmit={sendFeedback}>
         <div><span>TWO QUICK QUESTIONS</span><h2>Did this report help?</h2><p>Your answer improves the next Pallos build.</p></div>
