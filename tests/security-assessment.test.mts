@@ -58,3 +58,15 @@ test("dependency advisories count only when a lockfile was actually checked", ()
   assert.equal(assessCodeScan(lock, [finding], false, true).checks.find((item) => item.id === "dependency-advisories")?.status, "failed");
   assert.equal(assessCodeScan([{ path: "src/index.ts", content: "export {}" }], []).checks.find((item) => item.id === "dependency-advisories")?.status, "not_tested");
 });
+
+test("CRSPR Lite reports a separate, honest status for every pillar", () => {
+  const files = [
+    { path: "app/api/chat/route.ts", content: "const body = await request.json(); return streamText({ model, prompt: body.message });" },
+    { path: "supabase/migrations/003.sql", content: "drop table public.legacy_events;" },
+  ];
+  const assessment = assessCodeScan(files, scanRepositoryFiles(files));
+  assert.deepEqual(assessment.pillars?.map((pillar) => pillar.id), ["cost", "reliability", "security", "privacy", "recovery"]);
+  assert.equal(assessment.pillars?.find((pillar) => pillar.id === "privacy")?.status, "risk");
+  assert.equal(assessment.pillars?.find((pillar) => pillar.id === "recovery")?.status, "risk");
+  assert.equal(assessment.pillars?.find((pillar) => pillar.id === "reliability")?.status, "not_tested");
+});

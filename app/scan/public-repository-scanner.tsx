@@ -6,7 +6,8 @@ import { ArrowClockwise, ArrowRight, CheckCircle, Copy, GithubLogo, LockKey, Shi
 
 type Finding = { ruleId: string; title: string; severity: "critical" | "high" | "review" | "low"; category: string; filePath: string; lineNumber: number | null; evidence: string; explanation: string; suggestedFix: string };
 type Check = { id: string; title: string; status: "passed" | "failed" | "not_tested"; severity: "low" | "medium" | "high" | "critical" | null; explanation: string; remediation: string | null; evidence: string | null };
-type ScanResult = { repository: string; repositoryUrl: string; branch: string; commitSha: string; filesScanned: number; eligibleFiles: number; bytesScanned: number; partial: boolean; scanReference: string; findingsCount: number; findingsTruncated: boolean; findingCounts: { confirmed: number; review: number }; findings: Finding[]; assessment: { score: number; grade: string; summary: string; coverage: number; checks: Check[] } };
+type Pillar = { id: "cost" | "reliability" | "security" | "privacy" | "recovery"; letter: "C" | "R" | "S" | "P" | "R"; title: string; description: string; status: "risk" | "checked" | "not_tested"; checksRun: number; totalChecks: number };
+type ScanResult = { repository: string; repositoryUrl: string; branch: string; commitSha: string; filesScanned: number; eligibleFiles: number; bytesScanned: number; partial: boolean; scanReference: string; findingsCount: number; findingsTruncated: boolean; findingCounts: { confirmed: number; review: number }; findings: Finding[]; assessment: { score: number; grade: string; summary: string; coverage: number; checks: Check[]; pillars?: Pillar[] } };
 
 function track(name: string, parameters: Record<string, string | number | boolean> = {}) {
   const analytics = (window as unknown as { gtag?: (command: "event", eventName: string, values: Record<string, string | number | boolean>) => void }).gtag;
@@ -86,6 +87,7 @@ export function PublicRepositoryScanner({ initialRepositoryUrl = "" }: { initial
 
   const visibleFindings = result ? (showAll ? result.findings : result.findings.slice(0, 5)) : [];
   const untestedChecks = result?.assessment.checks.filter((check) => check.status === "not_tested") || [];
+  const pillars = result?.assessment.pillars || [];
 
   return <main className="public-repo-page">
     <header className="repo-scan-header"><nav><Link href="/" className="repo-scan-brand"><span />Pallos</Link><div><Link href="/tools">Free tools</Link><Link href="/proof">Proof Lab</Link><Link href="/login?mode=signup&next=/connections" className="repo-scan-private">Connect a private repo</Link></div></nav></header>
@@ -108,6 +110,7 @@ export function PublicRepositoryScanner({ initialRepositoryUrl = "" }: { initial
       <div className="repo-report-head"><div><span>SCAN COMPLETE · {result.commitSha.slice(0, 8)}</span><h2>{result.repository}</h2><a href={result.repositoryUrl} target="_blank" rel="noreferrer">View public source <ArrowRight /></a></div><div className={`repo-score ${result.assessment.score < 70 ? "danger" : result.assessment.score < 90 ? "review" : "strong"}`}><strong>{result.assessment.score}</strong><small>/100</small><b>{result.assessment.grade}</b></div></div>
       <p className="repo-report-summary">{result.assessment.summary}</p>
       <div className="repo-report-stats"><article><span>CONFIRMED RISKS</span><strong>{counts.confirmed}</strong><small>Matched static patterns</small></article><article><span>REVIEW SIGNALS</span><strong>{counts.review}</strong><small>Needs human review</small></article><article><span>UNTESTED</span><strong>{counts.untested}</strong><small>Not counted as passes</small></article><article><span>COVERAGE</span><strong>{result.assessment.coverage}%</strong><small>{result.filesScanned} of {result.eligibleFiles} eligible files loaded</small></article></div>
+      {pillars.length > 0 && <section className="repo-crspr" aria-labelledby="crspr-title"><div className="repo-crspr-intro"><span>CRSPR LITE</span><h2 id="crspr-title">Five release-risk areas. One honest report.</h2><p>Each area shows only what this static scan could check. Not checked never means passed.</p></div><div className="repo-crspr-grid">{pillars.map((pillar) => <article key={pillar.id} className={`repo-crspr-card ${pillar.status}`}><b>{pillar.letter}</b><div><h3>{pillar.title}</h3><p>{pillar.description}</p><small>{pillar.status === "risk" ? "Review signal found" : pillar.status === "checked" ? `${pillar.checksRun} check${pillar.checksRun === 1 ? "" : "s"} completed` : "Not verified for this repo"}</small></div></article>)}</div></section>}
       {result.partial && <div className="repo-partial"><Warning weight="fill" /><p><b>This was a capped public scan.</b> Pallos prioritized security-sensitive files. Connect GitHub for deeper coverage and automatic rescans.</p></div>}
 
       <div className="repo-report-title"><div><span>EVIDENCE + FIX DIRECTIONS</span><h2>{result.findingsCount ? `${result.findingsCount} ${result.findingsCount === 1 ? "signal" : "signals"} found` : "No matching risk signals"}</h2></div><button onClick={copySummary}><Copy />{copied ? "Copied" : "Copy summary"}</button></div>

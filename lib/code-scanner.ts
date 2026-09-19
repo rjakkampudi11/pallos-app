@@ -203,7 +203,7 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           rule_id: "ai-route-abuse-controls",
           title: "AI route is missing multiple abuse controls",
           severity: "review",
-          category: "AI Usage",
+          category: "Cost",
           file_path: file.path,
           line_number: 1,
           evidence: `Static review did not find ${missing.join(", ")} in this AI route.`,
@@ -212,6 +212,42 @@ export function scanRepositoryFiles(files: ScanFile[]) {
           source_hash: sourceHash(file),
         });
       }
+
+      const rawRequestBody = /(?:await\s+)?request\.json\s*\(/i.exec(file.content);
+      if (rawRequestBody && !/redact|sanitize|minimi[sz]e|allowlist|pick\s*\(/i.test(file.content)) {
+        const line = lineFor(file.content, rawRequestBody.index);
+        addFinding(findings, {
+          rule_id: "ai-request-data-minimization",
+          title: "AI route forwards request data without visible minimization",
+          severity: "review",
+          category: "Privacy",
+          file_path: file.path,
+          line_number: line,
+          evidence: `This AI route reads the full request body near line ${line}; no obvious redaction or allowlist was found in the same file.`,
+          explanation: "Chat and form payloads can include personal or sensitive information. Sending the full body to an AI provider may expose more data than the feature needs.",
+          suggested_fix: "Build an explicit allowlist of fields sent to the model, redact sensitive values where possible, and document the provider and retention implications for users.",
+          source_hash: sourceHash(file),
+        });
+      }
+    }
+
+    const serverRequest = /(?:^|\/)(?:app\/api|pages\/api|api|server|functions)(?:\/|$)/i.test(file.path);
+    const outboundRequest = firstMatch(file.content, /\bfetch\s*\(/g);
+    const visibleTimeout = /AbortSignal\.timeout|timeout\s*:|signal\s*:/i.test(file.content);
+    if (serverRequest && outboundRequest && !visibleTimeout && !isTestFile(file.path) && !isDetectionRuleFile(file)) {
+      const line = lineFor(file.content, outboundRequest.index);
+      addFinding(findings, {
+        rule_id: "outbound-request-timeout",
+        title: "External request has no visible timeout",
+        severity: "review",
+        category: "Reliability",
+        file_path: file.path,
+        line_number: line,
+        evidence: `A server-side fetch() call appears on line ${line}; no timeout or abort signal was found in the same file.`,
+        explanation: "A dependency that hangs can exhaust server capacity or leave users waiting indefinitely. Shared timeout wrappers may exist elsewhere, so this is a review signal rather than proof of a failure.",
+        suggested_fix: "Use an AbortSignal timeout or a documented shared request wrapper, then handle timeout failures with a safe response or retry policy.",
+        source_hash: sourceHash(file),
+      });
     }
 
     if (/app\/api\/.*admin.*\/route\.[cm]?[jt]sx?$/i.test(file.path)) {
@@ -232,6 +268,23 @@ export function scanRepositoryFiles(files: ScanFile[]) {
     }
 
     if (/supabase\/migrations\/.*\.sql$/i.test(file.path)) {
+      const destructiveChange = firstMatch(file.content, /\b(?:drop\s+table|truncate\s+(?:table\s+)?[\w."]+|delete\s+from)\b/gi);
+      if (destructiveChange) {
+        const line = lineFor(file.content, destructiveChange.index);
+        addFinding(findings, {
+          rule_id: "destructive-database-change",
+          title: "Destructive database change needs recovery review",
+          severity: "review",
+          category: "Recovery",
+          file_path: file.path,
+          line_number: line,
+          evidence: `A destructive SQL operation appears near line ${line}. Pallos cannot verify a backup, rollback, or restoration test from this migration alone.`,
+          explanation: "Deleting rows, truncating a table, or dropping a table can create irreversible data loss if the release has no tested recovery path.",
+          suggested_fix: "Document the backup and restore path, stage the migration on representative data, and include a reversible migration or approved recovery plan before production rollout.",
+          source_hash: sourceHash(file),
+        });
+      }
+
       const permissive = /create\s+policy[\s\S]{0,400}(?:using|with\s+check)\s*\(\s*true\s*\)/gi.exec(file.content);
       if (permissive) {
         const line = lineFor(file.content, permissive.index);

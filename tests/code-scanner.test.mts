@@ -116,6 +116,21 @@ test("allows an AI route with authentication, rate limiting, and an output cap",
   assert.equal(findings.length, 0);
 });
 
+test("flags an AI route that forwards the full request body without visible minimization", () => {
+  const findings = scanRepositoryFiles([{ path: "app/api/chat/route.ts", content: `const body = await request.json(); return streamText({ model, prompt: body.message });` }]);
+  assert.equal(findings.some((finding) => finding.rule_id === "ai-request-data-minimization" && finding.category === "Privacy"), true);
+});
+
+test("flags a server-side external request without a visible timeout", () => {
+  const findings = scanRepositoryFiles([{ path: "app/api/weather/route.ts", content: `const response = await fetch("https://weather.example/api"); return Response.json(await response.json());` }]);
+  assert.equal(findings.some((finding) => finding.rule_id === "outbound-request-timeout" && finding.category === "Reliability"), true);
+});
+
+test("flags destructive database operations for recovery review", () => {
+  const findings = scanRepositoryFiles([{ path: "supabase/migrations/003.sql", content: `drop table public.legacy_events;` }]);
+  assert.equal(findings.some((finding) => finding.rule_id === "destructive-database-change" && finding.category === "Recovery"), true);
+});
+
 test("flags disabled RLS and broad anonymous grants", () => {
   const findings = scanRepositoryFiles([{ path: "supabase/migrations/002.sql", content: `alter table public.profiles disable row level security;\ngrant all privileges on table public.profiles to anon;` }]);
   assert.equal(findings.some((finding) => finding.rule_id === "supabase-rls-disabled"), true);

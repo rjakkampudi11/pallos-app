@@ -3,6 +3,16 @@ import type { EndpointSnapshot, MonitorChange } from "@/lib/monitoring";
 
 export type AssessmentSeverity = "low" | "medium" | "high" | "critical";
 export type AssessmentStatus = "passed" | "failed" | "not_tested";
+export type CrsprPillarId = "cost" | "reliability" | "security" | "privacy" | "recovery";
+export type AssessmentPillar = {
+  id: CrsprPillarId;
+  letter: "C" | "R" | "S" | "P" | "R";
+  title: string;
+  description: string;
+  status: "risk" | "checked" | "not_tested";
+  checksRun: number;
+  totalChecks: number;
+};
 
 export type AssessmentCheck = {
   id: string;
@@ -12,6 +22,7 @@ export type AssessmentCheck = {
   explanation: string;
   remediation: string | null;
   evidence: string | null;
+  pillar?: CrsprPillarId;
 };
 
 export type SecurityAssessment = {
@@ -21,6 +32,7 @@ export type SecurityAssessment = {
   summary: string;
   coverage: number;
   checks: AssessmentCheck[];
+  pillars?: AssessmentPillar[];
 };
 
 const severityWeight: Record<AssessmentSeverity, number> = { low: 4, medium: 10, high: 22, critical: 40 };
@@ -64,6 +76,27 @@ export function finalizeSecurityAssessment(checks: AssessmentCheck[]): SecurityA
 
 function check(input: AssessmentCheck): AssessmentCheck { return input; }
 
+const crsprDefinitions: Array<Pick<AssessmentPillar, "id" | "letter" | "title" | "description">> = [
+  { id: "cost", letter: "C", title: "Cost", description: "AI and paid-service usage guardrails" },
+  { id: "reliability", letter: "R", title: "Reliability", description: "External dependency failure handling" },
+  { id: "security", letter: "S", title: "Security", description: "Access, secrets, and exploit-resistant configuration" },
+  { id: "privacy", letter: "P", title: "Privacy", description: "Data minimization before AI processing" },
+  { id: "recovery", letter: "R", title: "Recovery", description: "Destructive-change recovery readiness" },
+];
+
+function summarizeCrspr(checks: AssessmentCheck[]): AssessmentPillar[] {
+  return crsprDefinitions.map((pillar) => {
+    const scoped = checks.filter((item) => item.pillar === pillar.id);
+    const tested = scoped.filter((item) => item.status !== "not_tested");
+    return {
+      ...pillar,
+      status: scoped.some((item) => item.status === "failed") ? "risk" : tested.length ? "checked" : "not_tested",
+      checksRun: tested.length,
+      totalChecks: scoped.length,
+    };
+  });
+}
+
 export function assessEndpoint(snapshot: EndpointSnapshot, changes: MonitorChange[]): SecurityAssessment {
   const headers = snapshot.security?.headers || {};
   const cookies = snapshot.security?.cookies || [];
@@ -89,22 +122,25 @@ export function assessCodeScan(files: ScanFile[], findings: CodeFinding[], treeT
   const groups = new Map<string, CodeFinding[]>();
   for (const finding of findings) groups.set(finding.rule_id, [...(groups.get(finding.rule_id) || []), finding]);
   const definitions = [
-    { id: "committed-secrets", title: "Committed credential patterns", rules: [...new Set(findings.filter((finding) => finding.rule_id.startsWith("secret-")).map((finding) => finding.rule_id))], always: true, severity: "critical" as const, explanation: "Committed credentials can be copied from source history and used outside the application.", remediation: "Revoke exposed credentials, move replacements to server-only environment storage, and clean repository history." },
-    { id: "client-secret-boundary", title: "Client/server secret boundary", rules: ["supabase-service-role-client", "public-sensitive-environment-variable"], always: true, severity: "critical" as const, explanation: "Privileged values in browser code can bypass intended server and database controls.", remediation: "Move privileged operations and secrets into server-only code and rotate anything already deployed." },
-    { id: "session-cookie-config", title: "Authentication cookie configuration", rules: ["auth-cookie-not-http-only"], applicable: has(/cookie|session|auth/i), severity: "high" as const, explanation: "Script-readable authentication cookies increase the impact of cross-site scripting.", remediation: "Use HttpOnly, Secure, and an appropriate SameSite value for sensitive cookies." },
-    { id: "cors-config", title: "Credentialed CORS configuration", rules: ["credentialed-wildcard-cors"], applicable: has(/(?:app\/api|api|server|functions)/i), severity: "high" as const, explanation: "Credentialed cross-origin APIs should accept only explicitly trusted origins.", remediation: "Validate Origin against an allowlist instead of combining credentials with a wildcard." },
-    { id: "webhook-signatures", title: "Stripe webhook signatures", rules: ["stripe-webhook-signature"], applicable: has(/stripe.*webhook|webhook.*stripe/i), severity: "high" as const, explanation: "Unsigned webhooks can allow forged events to trigger application actions.", remediation: "Verify the provider signature against the raw request body before processing events." },
-    { id: "dynamic-execution", title: "Dynamic code execution", rules: ["dynamic-code-execution"], always: true, severity: "medium" as const, explanation: "Executing strings as code can become code execution when input is not fully controlled.", remediation: "Replace eval-like behavior with an explicit parser or allowlisted operation map." },
-    { id: "ai-abuse-controls", title: "AI endpoint abuse controls", rules: ["ai-route-abuse-controls"], applicable: has(/generateText|streamText|responses\.create|chat\.completions|anthropic\.messages/i), severity: "medium" as const, explanation: "Unprotected AI endpoints can be abused to consume quota and create unexpected cost.", remediation: "Require appropriate authentication, rate-limit callers, and cap model output on the server." },
-    { id: "admin-authorization", title: "Admin route authorization", rules: ["admin-route-authorization"], applicable: has(/app\/api\/.*admin.*\/route/i), severity: "critical" as const, explanation: "Admin routes need explicit identity and permission enforcement.", remediation: "Authenticate the caller and enforce an admin role or permission before any privileged action." },
-    { id: "supabase-rls", title: "Supabase Row Level Security", rules: ["supabase-permissive-policy", "supabase-rls-disabled", "supabase-anon-grant-all"], applicable: has(/supabase|create policy|row level security/i), severity: "critical" as const, explanation: "Overly broad database policies can expose or modify customer data.", remediation: "Enable RLS, remove broad anonymous grants, and scope policies to the authenticated user." },
-    { id: "dependency-advisories", title: "Installed dependency advisories", rules: [...new Set(findings.filter((finding) => finding.rule_id.startsWith("dependency-advisory:")).map((finding) => finding.rule_id))], applicable: dependencyAdvisoriesChecked, severity: "high" as const, explanation: "Locked dependency versions can contain publicly disclosed vulnerabilities.", remediation: "Review the advisory, upgrade to a patched version, test the application, and confirm whether the affected code path is reachable." },
+    { id: "committed-secrets", pillar: "security" as const, title: "Committed credential patterns", rules: [...new Set(findings.filter((finding) => finding.rule_id.startsWith("secret-")).map((finding) => finding.rule_id))], always: true, severity: "critical" as const, explanation: "Committed credentials can be copied from source history and used outside the application.", remediation: "Revoke exposed credentials, move replacements to server-only environment storage, and clean repository history." },
+    { id: "client-secret-boundary", pillar: "security" as const, title: "Client/server secret boundary", rules: ["supabase-service-role-client", "public-sensitive-environment-variable"], always: true, severity: "critical" as const, explanation: "Privileged values in browser code can bypass intended server and database controls.", remediation: "Move privileged operations and secrets into server-only code and rotate anything already deployed." },
+    { id: "session-cookie-config", pillar: "security" as const, title: "Authentication cookie configuration", rules: ["auth-cookie-not-http-only"], applicable: has(/cookie|session|auth/i), severity: "high" as const, explanation: "Script-readable authentication cookies increase the impact of cross-site scripting.", remediation: "Use HttpOnly, Secure, and an appropriate SameSite value for sensitive cookies." },
+    { id: "cors-config", pillar: "security" as const, title: "Credentialed CORS configuration", rules: ["credentialed-wildcard-cors"], applicable: has(/(?:app\/api|api|server|functions)/i), severity: "high" as const, explanation: "Credentialed cross-origin APIs should accept only explicitly trusted origins.", remediation: "Validate Origin against an allowlist instead of combining credentials with a wildcard." },
+    { id: "webhook-signatures", pillar: "security" as const, title: "Stripe webhook signatures", rules: ["stripe-webhook-signature"], applicable: has(/stripe.*webhook|webhook.*stripe/i), severity: "high" as const, explanation: "Unsigned webhooks can allow forged events to trigger application actions.", remediation: "Verify the provider signature against the raw request body before processing events." },
+    { id: "dynamic-execution", pillar: "security" as const, title: "Dynamic code execution", rules: ["dynamic-code-execution"], always: true, severity: "medium" as const, explanation: "Executing strings as code can become code execution when input is not fully controlled.", remediation: "Replace eval-like behavior with an explicit parser or allowlisted operation map." },
+    { id: "ai-abuse-controls", pillar: "cost" as const, title: "AI cost and abuse guardrails", rules: ["ai-route-abuse-controls"], applicable: has(/generateText|streamText|responses\.create|chat\.completions|anthropic\.messages/i), severity: "medium" as const, explanation: "Unprotected AI endpoints can be abused to consume quota and create unexpected cost.", remediation: "Require appropriate authentication, rate-limit callers, and cap model output on the server." },
+    { id: "outbound-timeouts", pillar: "reliability" as const, title: "External request timeouts", rules: ["outbound-request-timeout"], applicable: has(/\bfetch\s*\(/i), severity: "medium" as const, explanation: "A slow or unavailable dependency should not leave application work hanging indefinitely.", remediation: "Use a documented timeout or abort signal and handle the failure path deliberately." },
+    { id: "ai-data-minimization", pillar: "privacy" as const, title: "AI request data minimization", rules: ["ai-request-data-minimization"], applicable: has(/generateText|streamText|responses\.create|chat\.completions|anthropic\.messages/i), severity: "medium" as const, explanation: "AI features should send only the data they need to an external model provider.", remediation: "Allowlist needed fields, redact sensitive values where possible, and disclose the provider's data handling." },
+    { id: "admin-authorization", pillar: "security" as const, title: "Admin route authorization", rules: ["admin-route-authorization"], applicable: has(/app\/api\/.*admin.*\/route/i), severity: "critical" as const, explanation: "Admin routes need explicit identity and permission enforcement.", remediation: "Authenticate the caller and enforce an admin role or permission before any privileged action." },
+    { id: "supabase-rls", pillar: "security" as const, title: "Supabase Row Level Security", rules: ["supabase-permissive-policy", "supabase-rls-disabled", "supabase-anon-grant-all"], applicable: has(/supabase|create policy|row level security/i), severity: "critical" as const, explanation: "Overly broad database policies can expose or modify customer data.", remediation: "Enable RLS, remove broad anonymous grants, and scope policies to the authenticated user." },
+    { id: "destructive-database-change", pillar: "recovery" as const, title: "Destructive database change recovery", rules: ["destructive-database-change"], applicable: has(/supabase\/migrations\/.*\.sql/i), severity: "high" as const, explanation: "Destructive migrations need a tested backup, rollback, or restoration path.", remediation: "Document and test recovery before running destructive operations in production." },
+    { id: "dependency-advisories", pillar: "security" as const, title: "Installed dependency advisories", rules: [...new Set(findings.filter((finding) => finding.rule_id.startsWith("dependency-advisory:")).map((finding) => finding.rule_id))], applicable: dependencyAdvisoriesChecked, severity: "high" as const, explanation: "Locked dependency versions can contain publicly disclosed vulnerabilities.", remediation: "Review the advisory, upgrade to a patched version, test the application, and confirm whether the affected code path is reachable." },
   ];
   const checks: AssessmentCheck[] = definitions.map((definition) => {
     const matched = definition.rules.flatMap((rule) => groups.get(rule) || []);
     const tested = definition.always || definition.applicable;
-    return check({ id: definition.id, title: definition.title, status: matched.length ? "failed" : tested ? "passed" : "not_tested", severity: matched.length ? findingSeverity(matched[0].severity) : definition.severity, explanation: definition.explanation, remediation: matched.length ? definition.remediation : null, evidence: matched.length ? `${matched.length} verified ${matched.length === 1 ? "finding" : "findings"}; first observed at ${matched[0].file_path}${matched[0].line_number ? `:${matched[0].line_number}` : ""}.` : tested ? `Checked ${files.length} eligible repository files with no matching finding.` : "The required technology or surface was not reliably detected." });
+    return check({ id: definition.id, pillar: definition.pillar, title: definition.title, status: matched.length ? "failed" : tested ? "passed" : "not_tested", severity: matched.length ? findingSeverity(matched[0].severity) : definition.severity, explanation: definition.explanation, remediation: matched.length ? definition.remediation : null, evidence: matched.length ? `${matched.length} verified ${matched.length === 1 ? "finding" : "findings"}; first observed at ${matched[0].file_path}${matched[0].line_number ? `:${matched[0].line_number}` : ""}.` : tested ? `Checked ${files.length} eligible repository files with no matching finding.` : "The required technology or surface was not reliably detected." });
   });
   if (treeTruncated) checks.push(check({ id: "repository-coverage", title: "Repository scan coverage", status: "not_tested", severity: "medium", explanation: "GitHub returned a truncated tree, so some eligible files may not have been available to Pallos.", remediation: null, evidence: "GitHub marked the repository tree response as truncated." }));
-  return finalizeSecurityAssessment(checks);
+  return { ...finalizeSecurityAssessment(checks), pillars: summarizeCrspr(checks) };
 }
