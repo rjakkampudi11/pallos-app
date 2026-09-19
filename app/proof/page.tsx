@@ -61,7 +61,7 @@ const cases: Case[] = [
 
 export default function ProofLabPage() {
   return <main className="proof-page">
-    <header className="proof-header"><nav className="proof-nav"><Link href="/" className="proof-brand"><span />Pallos</Link><Link href="/login?mode=signup&next=/connections" className="proof-nav-cta">Scan your repo <ArrowRight weight="bold" /></Link></nav></header>
+    <header className="proof-header"><nav className="proof-nav"><Link href="/" className="proof-brand"><span />Pallos</Link><Link href="/scan" className="proof-nav-cta">Scan a public repo <ArrowRight weight="bold" /></Link></nav></header>
     <section className="proof-hero">
       <p className="proof-eyebrow"><ShieldCheck weight="fill" />Pallos Proof Lab</p>
       <h1>Real detections. Public source. Clear limits.</h1>
@@ -77,6 +77,6 @@ export default function ProofLabPage() {
       </article>)}
     </section>
     <section className="proof-method"><p className="proof-eyebrow">How to read this</p><h2>A score is a summary, not a promise.</h2><p>Pallos reports only the checks it can apply from the available repository source. Untested areas remain untested, and a clean re-scan means the specific static pattern was no longer found—not that the app has no security risk.</p><Link href="/methodology">Read the methodology <ArrowRight weight="bold" /></Link></section>
-    <section className="proof-cta"><p>Ready to check your own code?</p><h2>Get the evidence before you launch.</h2><Link href="/login?mode=signup&next=/connections" className="proof-button">Start a private beta scan <ArrowRight weight="bold" /></Link></section>
+    <section className="proof-cta"><p>Ready to check your own code?</p><h2>Get the evidence before you launch.</h2><Link href="/scan" className="proof-button">Scan a public repo — no account <ArrowRight weight="bold" /></Link></section>
   </main>;
 }
