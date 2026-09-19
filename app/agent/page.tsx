@@ -534,6 +534,21 @@ function TesterFeedback({ notify }: { notify: (value: string) => void }) {
 }
 
 function ContactView() {
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSending(true); setError("");
+    try {
+      const response = await fetch("/api/contact-feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+      const data = await response.json();
+      if (!response.ok) { setError(data.error || "Feedback could not be sent."); return; }
+      setSent(true); setMessage("");
+    } catch { setError("Feedback could not be sent. Please try again."); }
+    finally { setSending(false); }
+  }
   const accounts = [
     ["Instagram", "@pallos_agent", "https://www.instagram.com/pallos_agent/", InstagramLogo],
     ["Facebook", "Pallos", "https://www.facebook.com/Pallos", FacebookLogo],
@@ -542,7 +557,7 @@ function ContactView() {
     ["LinkedIn", "Pallos", "https://www.linkedin.com/in/pallos", LinkedinLogo],
     ["Indie Hackers", "@PallosAgent", "https://www.indiehackers.com/@PallosAgent", UsersThree],
   ] as const;
-  return <div className="contact-layout"><section className="workspace-card contact-primary"><span>EMAIL</span><h2>Have feedback on the sandbox?</h2><p>Tell us what felt confusing, what you expected to happen, or which checks would make Pallos useful for your build.</p><a href="mailto:pallosagent@gmail.com?subject=Pallos%20Agent%20feedback"><EnvelopeSimple />pallosagent@gmail.com<ArrowRight /></a><button onClick={() => navigator.clipboard.writeText("pallosagent")}><DiscordLogo />Copy Discord username: pallosagent<Copy /></button></section><section className="workspace-card contact-socials"><div className="card-head"><div><span>FOLLOW PALLOS</span><h2>Official accounts</h2></div></div>{accounts.map(([label,handle,href,Icon]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer"><Icon /><div><strong>{label}</strong><span>{handle}</span></div><ArrowRight /></a>)}</section></div>;
+  return <div className="contact-layout"><section className="workspace-card contact-primary"><span>QUICK FEEDBACK</span><h2>Tell us what you think.</h2><p>Ask a question, report a problem, or say what would make Pallos more useful. It stays in Pallos—no email app opens.</p>{sent ? <div className="contact-message-sent"><CheckCircle weight="fill" /><div><strong>Feedback sent</strong><p>Thank you. Your message was saved for the Pallos team.</p></div><button type="button" onClick={() => setSent(false)}>Send another</button></div> : <form className="contact-message-form" onSubmit={submitMessage}><label>Your message<textarea value={message} onChange={(event) => setMessage(event.target.value)} required rows={5} maxLength={2000} placeholder="What happened, what felt unclear, or what should Pallos do next?" /></label><button className="run-button" disabled={sending}>{sending ? "Sending…" : "Send feedback"}</button>{error && <p className="contact-message-error" role="alert">{error}</p>}</form>}<button onClick={() => navigator.clipboard.writeText("pallosagent")}><DiscordLogo />Copy Discord username: pallosagent<Copy /></button></section><section className="workspace-card contact-socials"><div className="card-head"><div><span>FOLLOW PALLOS</span><h2>Official accounts</h2></div></div>{accounts.map(([label,handle,href,Icon]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer"><Icon /><div><strong>{label}</strong><span>{handle}</span></div><ArrowRight /></a>)}</section></div>;
 }
 
 function SettingsView({ notify, tab, setTab, appearance, updateAppearance, connected, toggleConnector, account, setAccount, logout }: {
