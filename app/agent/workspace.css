@@ -1,0 +1,52 @@
+/* Pallos workspace: the same neutral identity as the public site. */
+.agent-app.agent-app {
+  --a-navy:#080808; --a-navy2:#111; --a-bg:#fafafa; --a-card:#fff;
+  --a-ink:#171717; --a-muted:#626262; --a-line:#dedede; --a-blue:#242424; --a-cyan:#444;
+  font-family:var(--font-inter),Arial,sans-serif;
+}
+.agent-app.theme-dim {--a-bg:#080808;--a-card:#111;--a-ink:#f5f5f5;--a-muted:#aaa;--a-line:#333;--a-blue:#ddd;--a-cyan:#bbb}
+.agent-app .agent-side {background:#080808;border-color:#292929}
+.agent-app .agent-brand-dot {border-color:#fff}
+.agent-app .workspace-switcher,.agent-app .agent-status {background:#111;border-color:#333}
+.agent-app .workspace-switcher>span,.agent-app .demo-profile>span {background:#292929;color:#fff}
+.agent-app .workspace-nav button {color:#aaa;transition:background .15s,color .15s}
+.agent-app .workspace-nav button:hover,.agent-app .workspace-nav button.active {background:#242424;color:#fff;box-shadow:none;transform:none}
+.agent-app .nav-group>p,.agent-app .workspace-switcher small,.agent-app .agent-status p,.agent-app .demo-profile small {color:#aaa}
+.agent-app .agent-status button,.agent-app .demo-profile,.agent-app .workspace-switcher>svg {color:#ccc}
+.agent-app .agent-header {background:var(--a-card);border-color:var(--a-line);backdrop-filter:none}
+.agent-app :is(.workspace-card,.project-card,.icon-button,.agent-search,.login-button,.agent-toast,.secondary-action,.outline-action,.settings-tabs,.side-popover,.notification-panel,.agent-prompt-modal) {background:var(--a-card);color:var(--a-ink);border-color:var(--a-line);box-shadow:none}
+.agent-app :is(input,select,textarea) {background:var(--a-bg);color:var(--a-ink);border-color:var(--a-line);font-size:14px}
+.agent-app :is(input,select,textarea):focus-visible {outline:2px solid var(--a-muted);outline-offset:2px}
+.agent-app .run-button,.agent-app .finding-review button {background:var(--a-ink);color:var(--a-card);border-color:var(--a-ink);box-shadow:none;font-size:14px;min-height:44px}
+.agent-app :is(.run-button,.secondary-action,.outline-action,.login-button):hover {transform:none;box-shadow:none;opacity:.85}
+.agent-app .agent-content {max-width:1480px;padding-top:42px}
+.agent-app .view-heading h1 {font-size:clamp(30px,4vw,44px);font-weight:600;letter-spacing:-.04em}
+.agent-app .view-heading p {font-size:16px;line-height:1.65;color:var(--a-muted);max-width:760px}
+.agent-app :is(.view-heading>div>span,.card-head span,.github-section-head span,.github-section-head a,.assessment-score>div:nth-child(2)>span,.feedback-intro>span,.feedback-success span) {color:var(--a-muted)}
+.agent-app :is(.start-here-card,.tester-onboarding,.demo-notice,.github-trust,.github-permissions,.assessment-explainer,.file-ref,.supabase-result-summary) {background:var(--a-bg);border-color:var(--a-line);color:var(--a-muted);box-shadow:none}
+.agent-app :is(.github-empty>svg,.github-trust>svg,.github-permissions>svg,.github-repo-top>span,.connection-icon,.project-card-top>span,.start-here-card li>b,.activity-list>div>span) {background:var(--a-bg);color:var(--a-ink);box-shadow:none}
+.agent-app :is(.start-here-card>div>span,.github-trust strong,.github-permissions strong,.start-here-card li strong,.start-here-card li>b,.card-head a,.demo-notice>b,.github-repo-actions small) {color:var(--a-ink)}
+.agent-app :is(.github-trust small,.github-permissions small,.github-empty p,.supabase-connect p,.github-repo-top p,.connection-card p,.start-here-card p,.start-here-card li>span) {color:var(--a-muted);font-size:14px;line-height:1.65}
+.agent-app .github-empty {align-items:flex-start;text-align:left;padding:32px}
+.agent-app .github-empty h2 {font-size:27px;font-weight:600}
+.agent-app .github-trust {width:100%;margin-top:24px;border-radius:6px}
+.agent-app .github-section-head h2 {font-weight:600}
+.agent-app .supabase-live-section {margin-top:40px;padding-top:32px;border-top:1px solid var(--a-line)}
+.agent-app .supabase-connect {padding:28px;gap:24px}
+.agent-app .supabase-connect form {grid-template-columns:1fr 1fr;gap:18px;max-width:840px}
+.agent-app .supabase-connect label {font-size:14px;line-height:1.5}
+.agent-app .supabase-connect input {min-height:46px;padding:12px}
+.agent-app .supabase-connect form label:last-of-type {grid-column:1/-1}
+.agent-app .supabase-connect form .run-button {justify-self:start;min-height:46px}
+.agent-app .supabase-connect h3 {font-size:21px;font-weight:600}
+.agent-app .supabase-connect p {max-width:720px}
+.agent-app .connection-note {color:var(--a-muted);font-size:14px;line-height:1.6}
+.agent-app .connection-note a {color:var(--a-ink);text-underline-offset:3px}
+.agent-app :is(.assessment-modal,.assessment-check,.assessment-score dl div,.assessment-modal header button,.assessment-view-all,.github-empty>code,.tester-feedback select,.tester-feedback textarea,.contact-message-form textarea) {background:var(--a-card);color:var(--a-ink);border-color:var(--a-line)}
+.agent-app .assessment-view-all:hover {background:var(--a-bg)}
+.agent-app .bar-chart>div>span {background:var(--a-ink)}
+.agent-app .runs-table .table-head,.agent-app .runs-table .table-row,.agent-app .queue-list>button,.agent-app .finding-queue>button {background:var(--a-card);color:var(--a-ink);border-color:var(--a-line)}
+.agent-app .runs-table .table-row:hover,.agent-app .queue-list>button:hover,.agent-app .finding-queue>button.selected {background:var(--a-bg)}
+.agent-app .github-error {font-size:14px;line-height:1.6}
+.agent-app .theme-preview.dim {background:#080808}.agent-app .theme-preview.dim i {background:#333}
+@media(max-width:700px){.agent-app .supabase-connect{padding:20px}.agent-app .supabase-connect form{grid-template-columns:1fr}.agent-app .supabase-connect form .run-button{width:100%}.agent-app .github-empty{padding:24px}.agent-app .agent-header .run-button{font-size:0}.agent-app .agent-header .run-button svg{font-size:20px}}

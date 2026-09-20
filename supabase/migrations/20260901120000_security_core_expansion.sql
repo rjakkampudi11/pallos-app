@@ -60,7 +60,9 @@ alter table public.pallos_finding_dispositions enable row level security;
 alter table public.pallos_supabase_connections enable row level security;
 
 grant select, insert, update, delete on public.pallos_finding_dispositions to authenticated, service_role;
-grant select, insert, update, delete on public.pallos_supabase_connections to authenticated, service_role;
+-- Encrypted provider credentials are accessed only through authenticated server routes.
+revoke all on public.pallos_supabase_connections from anon, authenticated;
+grant select, insert, update, delete on public.pallos_supabase_connections to service_role;
 
 create policy "Users manage their finding decisions" on public.pallos_finding_dispositions
   for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
