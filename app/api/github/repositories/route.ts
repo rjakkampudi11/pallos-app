@@ -10,14 +10,15 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return withRefreshedSession(NextResponse.json({ error: SUPABASE_SETUP_MESSAGE, setupRequired: true }, { status: 503 }), auth);
 
-  const [{ data: repositories, error }, { data: scans }, { data: findings }] = await Promise.all([
+  const [{ data: repositories, error: repositoryError }, { data: scans, error: scanError }, { data: findings, error: findingError }] = await Promise.all([
     supabase.from("pallos_github_repositories").select("*").eq("user_id", auth.user.id).order("updated_at", { ascending: false }),
     supabase.from("pallos_code_scans").select("*").eq("user_id", auth.user.id).order("started_at", { ascending: false }).limit(100),
     supabase.from("pallos_code_findings").select("*").eq("user_id", auth.user.id).in("status", ["open", "false_positive", "accepted_risk", "intended_behavior", "resolved"]).order("created_at", { ascending: false }).limit(500),
   ]);
+  const error = repositoryError || scanError || findingError;
   if (error) {
-    const setupRequired = error.code === "42P01" || error.code === "42501" || error.code === "PGRST205" || error.message.includes("schema cache") || error.message.includes("permission denied");
-    return withRefreshedSession(NextResponse.json({ error: setupRequired ? "Run the new GitHub scanner database migration first." : error.message, setupRequired }, { status: setupRequired ? 503 : 500 }), auth);
+    console.error("GitHub connection data could not be loaded", error.code);
+    return withRefreshedSession(NextResponse.json({ error: "We couldn’t load your GitHub connection. Please try again shortly." }, { status: 503 }), auth);
   }
   const enriched = (repositories || []).map((repository) => ({
     ...repository,
